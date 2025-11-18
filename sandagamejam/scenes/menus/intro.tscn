@@ -1,11 +1,11 @@
 [gd_scene load_steps=7 format=3 uid="uid://ebvprw6pexo2"]
 
-[ext_resource type="Script" path="res://scripts/intro.gd" id="1_1a7bk"]
+[ext_resource type="Script" uid="uid://cd2svseh483m6" path="res://scripts/intro.gd" id="1_1a7bk"]
 [ext_resource type="Texture2D" uid="uid://xqi1bhg5dq31" path="res://assets/backgrounds/level1.png" id="2_56pe6"]
-[ext_resource type="Texture2D" uid="uid://dt810x6h5xdnr" path="res://assets/ui/intro_text.png" id="3_klb7a"]
+[ext_resource type="Texture2D" uid="uid://dt810x6h5xdnr" path="res://assets/UI/intro_text.png" id="3_klb7a"]
 [ext_resource type="Texture2D" uid="uid://dt5f3gr2fml38" path="res://assets/sprites/newtown/newton_ready.png" id="3_uh46f"]
 [ext_resource type="LabelSettings" uid="uid://d2d5fqqackxp5" path="res://custom_resources/TutorialLabels.tres" id="5_56pe6"]
-[ext_resource type="Texture2D" uid="uid://bf1axal7v1ila" path="res://assets/ui/playbtn.png" id="5_uh46f"]
+[ext_resource type="Texture2D" uid="uid://bf1axal7v1ila" path="res://assets/UI/playbtn.png" id="5_uh46f"]
 
 [node name="Intro" type="Node2D"]
 script = ExtResource("1_1a7bk")

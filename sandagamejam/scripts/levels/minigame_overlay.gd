@@ -185,39 +185,56 @@ func start_ingredient_minigame():
 	btn_prepare.visible = true
 
 func animate_ingredients(ingr_loop: Array) -> void:
-	print("EMPEZAR A RECOLECTAR INGREDIENTES!!! ", ingr_loop)
+	print("EMPEZAR A RECOLECTAR INGREDIENTES (CAÍDA VERTICAL)!!! ", ingr_loop)
 	var container := recollect_container
 	clear_children_except_bowl(container)
 
-	var start_x := recollect_container.position.x + recollect_container.size.x + 100
-	var end_x := recollect_container.position.x
-	var spacing := 170
-	var duration := 4.0
-	var y := 100
-	var spawn_interval := 1.1  # tiempo entre aparición de cada ingrediente
+	# 1. Configuración vertical
+	# Empiezan arriba (negativo para que no se vean al nacer)
+	var start_y := -150.0 
+	# Terminan abajo (altura del contenedor + margen para que salgan de pantalla)
+	var end_y := container.size.y + 150.0
+	
+	# 2. Configuración horizontal (para que no caigan en fila india)
+	# Margen para que no peguen justo en el borde
+	var margin_x := 50.0
+	var min_x := margin_x
+	var max_x := container.size.x - margin_x
+
+	var duration := 4.0 # Tiempo que tarda en caer (velocidad de caída)
+	var spawn_interval := 1.1 # Tiempo entre cada ingrediente
 
 	for i in range(ingr_loop.size()):
 		var ing_id = ingr_loop[i]
 		var wrapper = create_ingredient_wrapper(ing_id, true)
 		container.add_child(wrapper)
 
-		wrapper.position = Vector2(start_x + (i * spacing), y)
+		# 3. Posición X aleatoria
+		# Generamos una posición X distinta para cada ingrediente dentro del ancho disponible
+		var random_x = randf_range(min_x, max_x)
+
+		# 4. Posicionar inicial
+		wrapper.position = Vector2(random_x, start_y)
 
 		var tween := create_tween()
-		tween.tween_property(wrapper, "position:x", end_x, duration + spawn_interval * i)\
+		
+		# 5. Animar en el eje Y (caída)
+		# Usamos set_delay para que no caigan todos al mismo tiempo
+		tween.tween_property(wrapper, "position:y", end_y, duration) \
 			.set_trans(Tween.TRANS_LINEAR) \
 			.set_ease(Tween.EASE_IN_OUT) \
 			.set_delay(spawn_interval * i)
+			
 		tween.tween_callback(Callable(wrapper, "queue_free"))
+		
 		# Guardar tween para poder cancelarlo
 		active_tweens.append(tween)
 	
-		# Cuando el último tween termina, verificar si se presionó "Prepare"
+		# Cuando el último tween termina
 		if i == ingr_loop.size() - 1:
 			tween.finished.connect(func():
 				emit_signal("ingredients_minigame_timeout")
 			)
-
 
 func clear_children(node: Node) -> void:
 	for child in node.get_children():
