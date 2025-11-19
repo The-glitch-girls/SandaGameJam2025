@@ -16,15 +16,15 @@ extends Control
 @onready var recipe_texture = $Recipe
 @onready var loading_label = $LoadingLabel
 
-# Loading text animation
-@export var dot_speed: float = 0.5 # Time in seconds to add/remove a dot
+
+@export var dot_speed: float = 0.5 
 @export var max_dots: int = 3
 
 var current_dots: int = 0
 var base_text: String = GlobalManager.loading_label
 var timer: Timer
 
-# Preloads de texturas
+
 @onready var bg_win   = preload("res://assets/backgrounds/good_score_bg.png")
 @onready var bg_fail  = preload("res://assets/backgrounds/bad_score_bg.png")
 @onready var newton_fail = preload("res://assets/sprites/newtown/newton_sad.png")
@@ -65,11 +65,11 @@ func _input(event: InputEvent) -> void:
 			if current_name.size() < max_name_length:
 				current_name.append(char_typed)
 				show_name_label()
-			# Luego del enter
+		
 		elif event.keycode == KEY_BACKSPACE and current_name.size() > 0:
 				current_name.pop_back()
 				show_name_label()
-			# Borrar letra
+			
 		elif event.keycode == KEY_ENTER and current_name.size() > 0 and not name_entered:
 			hide_player_score_labels()
 			animate_loading_label()
@@ -118,7 +118,7 @@ func show_name_label():
 			display += "_ "
 	name_label.text =  menu_labels["ranking"]["name"] + "\n" + display 
 	
-# Animar el "Loading..."
+
 func animate_loading_label():
 	loading_label.visible = true
 	loading_label.text = base_text
@@ -139,10 +139,10 @@ func stop_loading_animation():
 	loading_label.visible = false
 	current_dots = 0
 
-# Talo Calls
+
 func store_in_talo(username: String, score_value: int) -> void:
 	await Talo.players.identify("username", username)
-	#var res :=
+	
 	await Talo.leaderboards.add_entry(leaderboard_internal_name, score_value)
 	_build_entries()
 
@@ -153,12 +153,16 @@ func load_entries_from_talo() -> void:
 	while !done:
 		var options := Talo.leaderboards.GetEntriesOptions.new()
 		options.page = page
-		var res := await Talo.leaderboards.get_entries(leaderboard_internal_name, options)
-
-		# show entries!
-		# var entries: Array[TaloLeaderboardEntry] = res.entries
 		
-		#var count: int = res.count
+	
+		var res = await Talo.leaderboards.get_entries(leaderboard_internal_name, options)
+
+		
+		if res == null:
+			print("Talo devolvió null")
+			done = true 
+			break
+		
 		var is_last_page: bool = res.is_last_page
 		if is_last_page:
 			done = true
@@ -167,22 +171,31 @@ func load_entries_from_talo() -> void:
 	
 	_build_entries()
 
-# Evaluar si el score entra al ranking
+
 func is_player_in_ranking(score_value: int) -> bool:
 	await load_entries_from_talo()
+	
+	
+	if cached_entries.size() == 0:
+		return true
+		
+	
+	if cached_entries.size() < 10:
+		return true
+
+
 	var last_child_idx = cached_entries.size()
-	var lower_score =  cached_entries[last_child_idx-1].score
+	var lower_score = cached_entries[last_child_idx - 1].score
 	
 	return score_value > lower_score
-	
-# Muestra el ranking
+
 func show_ranking():
 	loading_label.visible = false
 	
 	var label = play_again_btn.get_node("Label")
 	label.text = menu_labels["play_again"] 
 	ranking_container.visible = true
-	#play_again_btn.visible = true
+	
 	
 func _on_AnimationPlayer_animation_finished(anim_name):
 	if anim_name == "final_sequence":
@@ -198,7 +211,7 @@ func _on_btn_play_again_pressed() -> void:
 func _build_entries() -> void:
 	free_container_children()
 	
-	# Get cached entries, recently stored
+	
 	cached_entries = Talo.leaderboards.get_cached_entries(leaderboard_internal_name)
 	if cached_entries.size() > 10:
 		cached_entries = cached_entries.slice(0, 10)
@@ -207,7 +220,7 @@ func _build_entries() -> void:
 		_create_entry(entry)
 	
 func _create_entry(entry: TaloLeaderboardEntry) -> void:
-	# Crear un label por cada item en ranking
+	
 	var player_label = Label.new()
 	player_label.text = str(entry.position)+". " + entry.player_alias.identifier +" - " + str(int(entry.score))
 	player_label.label_settings = ranking_label_settings
@@ -222,10 +235,3 @@ func hide_player_score_labels():
 	message.visible = false
 	score_container.visible = false
 	
-# Replaced by Talo
-#func store_in_ranking(username: String, score_value: int):
-	#ranking.append({"name": username, "score": score_value})
-	## Ordenar de mayor a menor score
-	#ranking.sort_custom(func(a, b): return b.score - a.score)
-	#if ranking.size() > 10:
-		#ranking = ranking.slice(0, 10)
