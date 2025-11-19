@@ -1,4 +1,4 @@
-[gd_scene load_steps=16 format=3 uid="uid://0nbfgsjfecy8"]
+[gd_scene load_steps=17 format=3 uid="uid://0nbfgsjfecy8"]
 
 [ext_resource type="Script" uid="uid://3qg5qwd7ie6j" path="res://scripts/levels/minigame_overlay.gd" id="1_jh425"]
 [ext_resource type="Texture2D" uid="uid://cfhb4cq5golfa" path="res://assets/UI/receta_texture.png" id="2_e7l36"]
@@ -15,6 +15,7 @@
 [ext_resource type="Texture2D" uid="uid://6fbjfmluo6hm" path="res://assets/UI/interact-btn-disabled.png" id="12_smtws"]
 [ext_resource type="Texture2D" uid="uid://bypdp632b58en" path="res://assets/pastry/bowl_back.png" id="13_70k8r"]
 [ext_resource type="Script" uid="uid://dwkse2ry78jtt" path="res://scenes/minigames/bowl.gd" id="13_q84un"]
+[ext_resource type="Texture2D" uid="uid://b6h2h1xyqsm13" path="res://assets/sprites/newtown/isaac_chapando.png" id="15_q84un"]
 
 [node name="MinigameOverlay" type="Node2D" groups=["minigame_overlay"]]
 script = ExtResource("1_jh425")
@@ -193,6 +194,12 @@ script = ExtResource("13_q84un")
 position = Vector2(37.7778, 21.1111)
 scale = Vector2(0.0971409, 0.11087)
 texture = ExtResource("13_70k8r")
+
+[node name="Front" type="Sprite2D" parent="TextureRect/RecollectContainer/Bowl"]
+z_index = 2
+position = Vector2(40.5555, 98.8889)
+scale = Vector2(0.0888607, 0.0888607)
+texture = ExtResource("15_q84un")
 
 [node name="IngredientArea" type="Area2D" parent="TextureRect/RecollectContainer/Bowl"]
 visible = false
