@@ -184,6 +184,31 @@ func start_ingredient_minigame():
 	animate_ingredients(ingr_loop)
 	btn_prepare.visible = true
 
+
+func create_ingredient_physics(ingredient_id: String) -> Area2D:
+	var path = "res://assets/pastry/ingredients/%s.png" % ingredient_id
+	if not ResourceLoader.exists(path): return null
+
+	var tex = load(path)
+	
+	var area = Area2D.new()
+	area.add_to_group("ingredients") # ¡Esto es lo que busca el Bowl!
+	area.set_meta("id", ingredient_id)
+	
+	var sprite = Sprite2D.new()
+	sprite.texture = tex
+	sprite.scale = Vector2(0.3, 0.3)
+	area.add_child(sprite)
+	
+	var collision = CollisionShape2D.new()
+	var shape = CircleShape2D.new()
+	shape.radius = 30 # Radio de colisión
+	collision.shape = shape
+	area.add_child(collision)
+	
+	area.z_index = 1
+	return area
+	
 func animate_ingredients(ingr_loop: Array) -> void:
 	print("🥣 INICIO CAÍDA FÍSICA: ", ingr_loop)
 	var container := recollect_container
@@ -400,34 +425,7 @@ func random_point_in_polygon(poly: PackedVector2Array) -> Vector2:
 	
 	return poly[0] 
 	
-func create_ingredient_physics(ingredient_id: String) -> Area2D:
-	var path = "res://assets/pastry/ingredients/%s.png" % ingredient_id
-	if not ResourceLoader.exists(path): return null
 
-	var tex = load(path)
-	
-	
-	var area = Area2D.new()
-	area.add_to_group("ingredients") 
-	area.set_meta("id", ingredient_id)
-	
-	
-	var sprite = Sprite2D.new()
-	sprite.texture = tex
-	sprite.scale = Vector2(0.3, 0.3)
-	area.add_child(sprite)
-	
-	
-	var collision = CollisionShape2D.new()
-	var shape = CircleShape2D.new()
-	shape.radius = 30 
-	collision.shape = shape
-	area.add_child(collision)
-	
-	
-	area.z_index = 1 
-	
-	return area
 	
 func check_prepare_button() -> void:
 	if GlobalManager.collected_ingredients.size() > 0:
