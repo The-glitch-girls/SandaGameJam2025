@@ -1,11 +1,11 @@
 [gd_scene load_steps=7 format=3 uid="uid://claed8rt7wvae"]
 
 [ext_resource type="Script" uid="uid://70wy2loe8sc8" path="res://scripts/customer/customer.gd" id="1_4aogt"]
-[ext_resource type="Texture2D" uid="uid://5ps7nxckr5qp" path="res://assets/sprites/customers/adalovelace_entering.png" id="2_61uij"]
-[ext_resource type="Texture2D" uid="uid://b28kcd0oku717" path="res://assets/ui/interact-btn.png" id="4_e8tpg"]
-[ext_resource type="Texture2D" uid="uid://pe12a3dpmteo" path="res://assets/ui/interact-btn-pressed.png" id="5_a0qng"]
+[ext_resource type="Texture2D" uid="uid://duclb0w6qwn8s" path="res://assets/sprites/customers/adalovelace_entering.png" id="2_61uij"]
+[ext_resource type="Texture2D" uid="uid://bucjn7pqe12yt" path="res://assets/ui/interact-btn.png" id="4_e8tpg"]
+[ext_resource type="Texture2D" uid="uid://csmtn88ex4rxk" path="res://assets/ui/interact-btn-pressed.png" id="5_a0qng"]
 [ext_resource type="LabelSettings" uid="uid://jdv1bfj4iff7" path="res://custom_resources/InteractionButtonLabels.tres" id="6_2t1lt"]
-[ext_resource type="AudioStream" uid="uid://8yp7col1xekj" path="res://assets/sfx/global/sfx_entering.wav" id="7_irena"]
+[ext_resource type="AudioStream" uid="uid://bmak66wr4qw6g" path="res://assets/sfx/global/sfx_entering.wav" id="7_irena"]
 
 [node name="Customer" type="Node2D"]
 script = ExtResource("1_4aogt")
