@@ -190,8 +190,8 @@ scale = Vector2(1.8, 1.8)
 script = ExtResource("13_q84un")
 
 [node name="Back" type="Sprite2D" parent="TextureRect/RecollectContainer/Bowl"]
-position = Vector2(-12.7285, -9.77154)
-scale = Vector2(0.145345, 0.138516)
+position = Vector2(37.7778, 21.1111)
+scale = Vector2(0.0971409, 0.11087)
 texture = ExtResource("13_70k8r")
 
 [node name="IngredientArea" type="Area2D" parent="TextureRect/RecollectContainer/Bowl"]
@@ -199,6 +199,8 @@ visible = false
 scale = Vector2(1e-05, 1e-05)
 
 [node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="TextureRect/RecollectContainer/Bowl/IngredientArea"]
+position = Vector2(4e+06, 1.66667e+06)
+scale = Vector2(0.60074, 0.72649)
 polygon = PackedVector2Array(-722222, -444446, -722222, -388890, -2.44444e+06, -444446, -4.5e+06, -722224, -5.38889e+06, -888890, -6.27778e+06, -1.05556e+06, -7.05556e+06, -1.22222e+06, -8.38889e+06, -1.83334e+06, -8.05556e+06, -888890, -7.61111e+06, 55554, -7.61111e+06, 55554, -6.33333e+06, 1.66666e+06, -5.16667e+06, 2.55555e+06, -4.05556e+06, 3.27778e+06, -2.33333e+06, 3.88889e+06, -777778, 4.11111e+06, 777778, 4.22222e+06, 1.83333e+06, 3.88889e+06, 2.94444e+06, 3.61111e+06, 3.83333e+06, 3.27778e+06, 4.94444e+06, 2.66666e+06, 5.72222e+06, 2e+06, 6.61111e+06, 1.16666e+06, 7.16667e+06, 499998, 7.66667e+06, -111114, 8.11111e+06, -833336, 8.5e+06, -1.83334e+06, 7.27778e+06, -1.27778e+06, 5.27778e+06, -722224, 3.94444e+06, -611114, 2.77778e+06, -555558, 1.55556e+06, -500002, 500000, -444446, -666666, -444446)
 
 [node name="BtnPrepareRecipe" type="TextureButton" parent="TextureRect"]

@@ -13,6 +13,10 @@ var minigame_started := false
 var active_tweens := []
 
 func _ready():
+	
+	hide_recollect_container() 
+	
+	
 	load_menu_data()
 	load_btn_labels()
 
