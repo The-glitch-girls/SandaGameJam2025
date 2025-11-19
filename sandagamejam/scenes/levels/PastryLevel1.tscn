@@ -1,8 +1,8 @@
 [gd_scene load_steps=4 format=3 uid="uid://c360ti54la3sr"]
 
 [ext_resource type="Script" uid="uid://6p3dcvi4f7xk" path="res://scripts/levels/pastry_level_1.gd" id="1_aov3q"]
-[ext_resource type="Texture2D" uid="uid://cns6yidqqgg12" path="res://assets/backgrounds/level1.png" id="2_aov3q"]
-[ext_resource type="Texture2D" uid="uid://bwg7nuw1j0tek" path="res://assets/backgrounds/mesa.png" id="2_ld2p3"]
+[ext_resource type="Texture2D" uid="uid://xqi1bhg5dq31" path="res://assets/backgrounds/level1.png" id="2_aov3q"]
+[ext_resource type="Texture2D" uid="uid://dddj114pkxium" path="res://assets/backgrounds/mesa.png" id="2_ld2p3"]
 
 [node name="PastryLevel1" type="Node2D"]
 script = ExtResource("1_aov3q")

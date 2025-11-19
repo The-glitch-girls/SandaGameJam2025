@@ -46,13 +46,14 @@ var gravitational_equivalents = {
 
 func _ready():
 	newton_layer.visible = false
+	newton_ready_sprite.visible = false
 	GlobalManager.connect("time_up", Callable(self, "_on_time_up"))
 	GlobalManager.connect("game_over", Callable(self, "_on_game_over"))
 	GlobalManager.connect("win", Callable(self, "_on_win"))
 
 func show_newton_layer():
 	newton_layer.visible = true
-	
+	newton_ready_sprite.visible = false
 # Cargar Main Menu: Jugar, Opciones, Creditos
 func load_main_menu():
 	# Limpiar cualquier escena previa
@@ -277,7 +278,7 @@ func show_recipe_result_with_delay(result: Dictionary) -> void:
 func reset_newton_ready() -> void:
 	# Restaurar Newton
 	newton_moods_sprite.texture = preload("res://assets/sprites/newtown/newton_cooking.png")
-	newton_ready_sprite.visible = true
+	newton_ready_sprite.visible = false
 	newton_moods_sprite.visible = false
 	
 	var tween = create_tween()
@@ -291,8 +292,8 @@ func resize_newton_ready(new_scale_vector: Vector2) -> void:
 	tween.tween_property(newton_ready_sprite, "scale", new_scale_vector, 0.5)
 	
 	# Mover con animación (20px más abajo/derecha de su posición actual)
-	var new_pos = newton_ready_sprite.position + Vector2(84,100)
-	tween.tween_property(newton_ready_sprite, "position", new_pos, 0.5)
+	#var new_pos = newton_ready_sprite.position + Vector2(84,100)
+	#tween.tween_property(newton_ready_sprite, "position", new_pos, 0.5)
 
 func arrays_match_with_gravity(collected: Array, recipe: Array) -> bool:	
 	for recipe_id in recipe: #["ing_001", "ing_002", "ing_005", "ing_003"]

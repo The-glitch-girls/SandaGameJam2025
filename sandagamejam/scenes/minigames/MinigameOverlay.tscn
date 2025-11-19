@@ -1,22 +1,23 @@
-[gd_scene load_steps=16 format=3 uid="uid://0nbfgsjfecy8"]
+[gd_scene load_steps=17 format=3 uid="uid://0nbfgsjfecy8"]
 
 [ext_resource type="Script" uid="uid://3qg5qwd7ie6j" path="res://scripts/levels/minigame_overlay.gd" id="1_jh425"]
-[ext_resource type="Texture2D" uid="uid://dykbrwe0ocsvh" path="res://assets/ui/receta_texture.png" id="2_e7l36"]
-[ext_resource type="Texture2D" uid="uid://yxsy07s7t2f1" path="res://assets/ui/receta-btn.png" id="3_t45b2"]
-[ext_resource type="Texture2D" uid="uid://xwv0x6o3g3x2" path="res://assets/ui/receta-btn-pressed.png" id="4_3ueo8"]
-[ext_resource type="Texture2D" uid="uid://ckppfydbn3ir1" path="res://assets/pastry/recipes/recipe_001.png" id="5_e7l36"]
-[ext_resource type="Texture2D" uid="uid://brnhfvfk4isam" path="res://assets/pastry/recipes/recipe_002.png" id="6_ww4g8"]
-[ext_resource type="Texture2D" uid="uid://c85lql542hrd6" path="res://assets/pastry/recipes/recipe_003.png" id="7_70k8r"]
-[ext_resource type="Texture2D" uid="uid://ciqmpolj4not4" path="res://assets/pastry/recipes/recipe_004.png" id="8_q84un"]
+[ext_resource type="Texture2D" uid="uid://cfhb4cq5golfa" path="res://assets/UI/receta_texture.png" id="2_e7l36"]
+[ext_resource type="Texture2D" uid="uid://4y206q80gyln" path="res://assets/UI/receta-btn.png" id="3_t45b2"]
+[ext_resource type="Texture2D" uid="uid://day00e0nk601k" path="res://assets/UI/receta-btn-pressed.png" id="4_3ueo8"]
+[ext_resource type="Texture2D" uid="uid://k7el07uoou3u" path="res://assets/pastry/recipes/recipe_001.png" id="5_e7l36"]
+[ext_resource type="Texture2D" uid="uid://bd23co53v1shm" path="res://assets/pastry/recipes/recipe_002.png" id="6_ww4g8"]
+[ext_resource type="Texture2D" uid="uid://ckltn331b7wxq" path="res://assets/pastry/recipes/recipe_003.png" id="7_70k8r"]
+[ext_resource type="Texture2D" uid="uid://5n45o2xvbtpl" path="res://assets/pastry/recipes/recipe_004.png" id="8_q84un"]
 [ext_resource type="Theme" uid="uid://xreggbw3h3yp" path="res://custom_resources/CustomerMessage.tres" id="9_smtws"]
-[ext_resource type="Texture2D" uid="uid://b28kcd0oku717" path="res://assets/ui/interact-btn.png" id="10_e7l36"]
-[ext_resource type="Texture2D" uid="uid://pe12a3dpmteo" path="res://assets/ui/interact-btn-pressed.png" id="11_ww4g8"]
+[ext_resource type="Texture2D" uid="uid://bucjn7pqe12yt" path="res://assets/UI/interact-btn.png" id="10_e7l36"]
+[ext_resource type="Texture2D" uid="uid://csmtn88ex4rxk" path="res://assets/UI/interact-btn-pressed.png" id="11_ww4g8"]
 [ext_resource type="LabelSettings" uid="uid://jdv1bfj4iff7" path="res://custom_resources/InteractionButtonLabels.tres" id="12_70k8r"]
-[ext_resource type="Texture2D" uid="uid://b6rsdliq8rho8" path="res://assets/ui/interact-btn-disabled.png" id="12_smtws"]
-[ext_resource type="Texture2D" uid="uid://bxpf6e0gul3kk" path="res://assets/pastry/bowl_back.png" id="13_70k8r"]
-[ext_resource type="Texture2D" uid="uid://cohlbvecxf7gn" path="res://assets/pastry/bowl_front.png" id="14_q84un"]
+[ext_resource type="Texture2D" uid="uid://6fbjfmluo6hm" path="res://assets/UI/interact-btn-disabled.png" id="12_smtws"]
+[ext_resource type="Texture2D" uid="uid://bypdp632b58en" path="res://assets/pastry/bowl_back.png" id="13_70k8r"]
+[ext_resource type="Script" uid="uid://dwkse2ry78jtt" path="res://scenes/minigames/bowl.gd" id="13_q84un"]
+[ext_resource type="Texture2D" uid="uid://b6h2h1xyqsm13" path="res://assets/sprites/newtown/isaac_chapando.png" id="15_q84un"]
 
-[node name="MinigameOverlay" type="Node2D"]
+[node name="MinigameOverlay" type="Node2D" groups=["minigame_overlay"]]
 script = ExtResource("1_jh425")
 
 [node name="TextureRect" type="TextureRect" parent="."]
@@ -174,7 +175,6 @@ label_settings = ExtResource("12_70k8r")
 horizontal_alignment = 1
 
 [node name="RecollectContainer" type="Control" parent="TextureRect"]
-visible = false
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -186,37 +186,39 @@ grow_vertical = 2
 mouse_filter = 2
 
 [node name="Bowl" type="Node2D" parent="TextureRect/RecollectContainer"]
-visible = false
 position = Vector2(342, 494)
 scale = Vector2(1.8, 1.8)
+script = ExtResource("13_q84un")
 
 [node name="Back" type="Sprite2D" parent="TextureRect/RecollectContainer/Bowl"]
-visible = false
-scale = Vector2(0.175, 0.175)
+position = Vector2(37.7223, -2.77786)
+scale = Vector2(0.0971409, 0.11087)
 texture = ExtResource("13_70k8r")
+
+[node name="Front" type="Sprite2D" parent="TextureRect/RecollectContainer/Bowl"]
+z_index = 2
+position = Vector2(40.5, 74.9999)
+scale = Vector2(0.0888607, 0.0888607)
+texture = ExtResource("15_q84un")
 
 [node name="IngredientArea" type="Area2D" parent="TextureRect/RecollectContainer/Bowl"]
 visible = false
 scale = Vector2(1e-05, 1e-05)
 
 [node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="TextureRect/RecollectContainer/Bowl/IngredientArea"]
-visible = false
+position = Vector2(4e+06, 1.66667e+06)
+scale = Vector2(0.60074, 0.72649)
 polygon = PackedVector2Array(-722222, -444446, -722222, -388890, -2.44444e+06, -444446, -4.5e+06, -722224, -5.38889e+06, -888890, -6.27778e+06, -1.05556e+06, -7.05556e+06, -1.22222e+06, -8.38889e+06, -1.83334e+06, -8.05556e+06, -888890, -7.61111e+06, 55554, -7.61111e+06, 55554, -6.33333e+06, 1.66666e+06, -5.16667e+06, 2.55555e+06, -4.05556e+06, 3.27778e+06, -2.33333e+06, 3.88889e+06, -777778, 4.11111e+06, 777778, 4.22222e+06, 1.83333e+06, 3.88889e+06, 2.94444e+06, 3.61111e+06, 3.83333e+06, 3.27778e+06, 4.94444e+06, 2.66666e+06, 5.72222e+06, 2e+06, 6.61111e+06, 1.16666e+06, 7.16667e+06, 499998, 7.66667e+06, -111114, 8.11111e+06, -833336, 8.5e+06, -1.83334e+06, 7.27778e+06, -1.27778e+06, 5.27778e+06, -722224, 3.94444e+06, -611114, 2.77778e+06, -555558, 1.55556e+06, -500002, 500000, -444446, -666666, -444446)
-
-[node name="Front" type="Sprite2D" parent="TextureRect/RecollectContainer/Bowl"]
-visible = false
-z_index = 2
-scale = Vector2(0.175, 0.175)
-texture = ExtResource("14_q84un")
 
 [node name="BtnPrepareRecipe" type="TextureButton" parent="TextureRect"]
 visible = false
 z_index = 3
 layout_mode = 0
-offset_left = 222.0
-offset_top = 520.0
-offset_right = 473.0
-offset_bottom = 599.0
+offset_left = 366.0
+offset_top = 26.0
+offset_right = 617.0
+offset_bottom = 105.0
+scale = Vector2(0.8, 0.8)
 disabled = true
 texture_normal = ExtResource("10_e7l36")
 texture_pressed = ExtResource("11_ww4g8")
