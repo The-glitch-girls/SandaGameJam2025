@@ -191,13 +191,13 @@ scale = Vector2(1.8, 1.8)
 script = ExtResource("13_q84un")
 
 [node name="Back" type="Sprite2D" parent="TextureRect/RecollectContainer/Bowl"]
-position = Vector2(37.7778, 21.1111)
+position = Vector2(37.7223, -2.77786)
 scale = Vector2(0.0971409, 0.11087)
 texture = ExtResource("13_70k8r")
 
 [node name="Front" type="Sprite2D" parent="TextureRect/RecollectContainer/Bowl"]
 z_index = 2
-position = Vector2(40.5555, 98.8889)
+position = Vector2(40.5, 74.9999)
 scale = Vector2(0.0888607, 0.0888607)
 texture = ExtResource("15_q84un")
 
@@ -214,10 +214,11 @@ polygon = PackedVector2Array(-722222, -444446, -722222, -388890, -2.44444e+06, -
 visible = false
 z_index = 3
 layout_mode = 0
-offset_left = 222.0
-offset_top = 520.0
-offset_right = 473.0
-offset_bottom = 599.0
+offset_left = 366.0
+offset_top = 26.0
+offset_right = 617.0
+offset_bottom = 105.0
+scale = Vector2(0.8, 0.8)
 disabled = true
 texture_normal = ExtResource("10_e7l36")
 texture_pressed = ExtResource("11_ww4g8")
