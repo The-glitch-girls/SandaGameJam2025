@@ -2,8 +2,8 @@
 
 [ext_resource type="Script" uid="uid://70wy2loe8sc8" path="res://scripts/customer/customer.gd" id="1_4aogt"]
 [ext_resource type="Texture2D" uid="uid://duclb0w6qwn8s" path="res://assets/sprites/customers/adalovelace_entering.png" id="2_61uij"]
-[ext_resource type="Texture2D" uid="uid://bucjn7pqe12yt" path="res://assets/ui/interact-btn.png" id="4_e8tpg"]
-[ext_resource type="Texture2D" uid="uid://csmtn88ex4rxk" path="res://assets/ui/interact-btn-pressed.png" id="5_a0qng"]
+[ext_resource type="Texture2D" uid="uid://bucjn7pqe12yt" path="res://assets/UI/interact-btn.png" id="4_e8tpg"]
+[ext_resource type="Texture2D" uid="uid://csmtn88ex4rxk" path="res://assets/UI/interact-btn-pressed.png" id="5_a0qng"]
 [ext_resource type="LabelSettings" uid="uid://jdv1bfj4iff7" path="res://custom_resources/InteractionButtonLabels.tres" id="6_2t1lt"]
 [ext_resource type="AudioStream" uid="uid://bmak66wr4qw6g" path="res://assets/sfx/global/sfx_entering.wav" id="7_irena"]
 

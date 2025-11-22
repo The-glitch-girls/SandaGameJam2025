@@ -1,6 +1,6 @@
 [gd_scene load_steps=3 format=3 uid="uid://day0gw8i45mdc"]
 
-[ext_resource type="Texture2D" uid="uid://4y206q80gyln" path="res://assets/ui/receta-btn.png" id="1_57pkt"]
+[ext_resource type="Texture2D" uid="uid://4y206q80gyln" path="res://assets/UI/receta-btn.png" id="1_57pkt"]
 [ext_resource type="FontFile" uid="uid://bx2ex5j0qq1dc" path="res://assets/fonts/Macondo/Macondo-Regular.ttf" id="2_qcyip"]
 
 [node name="IngredientsMenu" type="Node2D"]
