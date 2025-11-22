@@ -1,18 +1,18 @@
 [gd_scene load_steps=17 format=3 uid="uid://0nbfgsjfecy8"]
 
 [ext_resource type="Script" uid="uid://3qg5qwd7ie6j" path="res://scripts/levels/minigame_overlay.gd" id="1_jh425"]
-[ext_resource type="Texture2D" uid="uid://bd7sqrxqdcj80" path="res://assets/UI/receta_texture.png" id="2_e7l36"]
-[ext_resource type="Texture2D" uid="uid://bewfpvnniqv3d" path="res://assets/UI/receta-btn.png" id="3_t45b2"]
-[ext_resource type="Texture2D" uid="uid://8fgc3hisuaob" path="res://assets/UI/receta-btn-pressed.png" id="4_3ueo8"]
+[ext_resource type="Texture2D" uid="uid://bd7sqrxqdcj80" path="res://assets/ui/receta_texture.png" id="2_e7l36"]
+[ext_resource type="Texture2D" uid="uid://bewfpvnniqv3d" path="res://assets/ui/receta-btn.png" id="3_t45b2"]
+[ext_resource type="Texture2D" uid="uid://8fgc3hisuaob" path="res://assets/ui/receta-btn-pressed.png" id="4_3ueo8"]
 [ext_resource type="Texture2D" uid="uid://h8fdael1b70m" path="res://assets/pastry/recipes/recipe_001.png" id="5_e7l36"]
 [ext_resource type="Texture2D" uid="uid://dfr4wl37n1av4" path="res://assets/pastry/recipes/recipe_002.png" id="6_ww4g8"]
 [ext_resource type="Texture2D" uid="uid://j5x08ntmqrit" path="res://assets/pastry/recipes/recipe_003.png" id="7_70k8r"]
 [ext_resource type="Texture2D" uid="uid://cf5dk1s316vb8" path="res://assets/pastry/recipes/recipe_004.png" id="8_q84un"]
 [ext_resource type="Theme" uid="uid://xreggbw3h3yp" path="res://custom_resources/CustomerMessage.tres" id="9_smtws"]
-[ext_resource type="Texture2D" uid="uid://jamwyueec32p" path="res://assets/UI/interact-btn.png" id="10_e7l36"]
-[ext_resource type="Texture2D" uid="uid://bpv7ib6u2578q" path="res://assets/UI/interact-btn-pressed.png" id="11_ww4g8"]
+[ext_resource type="Texture2D" uid="uid://jamwyueec32p" path="res://assets/ui/interact-btn.png" id="10_e7l36"]
+[ext_resource type="Texture2D" uid="uid://bpv7ib6u2578q" path="res://assets/ui/interact-btn-pressed.png" id="11_ww4g8"]
 [ext_resource type="LabelSettings" uid="uid://jdv1bfj4iff7" path="res://custom_resources/InteractionButtonLabels.tres" id="12_70k8r"]
-[ext_resource type="Texture2D" uid="uid://nefnaqulxs8j" path="res://assets/UI/interact-btn-disabled.png" id="12_smtws"]
+[ext_resource type="Texture2D" uid="uid://nefnaqulxs8j" path="res://assets/ui/interact-btn-disabled.png" id="12_smtws"]
 [ext_resource type="Texture2D" uid="uid://ds7ivot3n32fn" path="res://assets/pastry/bowl_back.png" id="13_70k8r"]
 [ext_resource type="Script" uid="uid://dwkse2ry78jtt" path="res://scripts/bowl.gd" id="13_q84un"]
 [ext_resource type="Texture2D" uid="uid://dl3yuolojoe75" path="res://assets/sprites/newtown/isaac_chapando.png" id="15_q84un"]
@@ -191,13 +191,13 @@ scale = Vector2(1.8, 1.8)
 script = ExtResource("13_q84un")
 
 [node name="Back" type="Sprite2D" parent="TextureRect/RecollectContainer/Bowl"]
-position = Vector2(37.7223, -2.77786)
-scale = Vector2(0.0971409, 0.11087)
+position = Vector2(38.444, -32.728)
+scale = Vector2(0.100426, 0.0929456)
 texture = ExtResource("13_70k8r")
 
 [node name="Front" type="Sprite2D" parent="TextureRect/RecollectContainer/Bowl"]
 z_index = 2
-position = Vector2(40.5, 74.9999)
+position = Vector2(40.5, 45)
 scale = Vector2(0.0888607, 0.0888607)
 texture = ExtResource("15_q84un")
 
