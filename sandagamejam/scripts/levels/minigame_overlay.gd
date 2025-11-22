@@ -254,6 +254,9 @@ func animate_ingredients(ingr_loop: Array) -> void:
 		
 		if i == ingr_loop.size() - 1:
 			tween.finished.connect(func():
+				hide_recollect_container()
+				btn_prepare.visible = false
+				
 				emit_signal("ingredients_minigame_timeout")
 			)
 			

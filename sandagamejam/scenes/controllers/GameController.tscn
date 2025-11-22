@@ -2,13 +2,13 @@
 
 [ext_resource type="Script" uid="uid://coqfni23j7fna" path="res://scripts/game_controller.gd" id="1_d13v1"]
 [ext_resource type="Texture2D" uid="uid://4o3c3306e13x" path="res://assets/sprites/newtown/newton_ready.png" id="2_d0bm5"]
-[ext_resource type="Texture2D" uid="uid://bd7sqrxqdcj80" path="res://assets/UI/receta_texture.png" id="2_jxop5"]
+[ext_resource type="Texture2D" uid="uid://bd7sqrxqdcj80" path="res://assets/ui/receta_texture.png" id="2_jxop5"]
 [ext_resource type="Texture2D" uid="uid://cnvxr3055hpum" path="res://assets/sprites/newtown/newton_cooking.png" id="3_5scdt"]
 [ext_resource type="Theme" uid="uid://xreggbw3h3yp" path="res://custom_resources/CustomerMessage.tres" id="3_jxop5"]
-[ext_resource type="Texture2D" uid="uid://jamwyueec32p" path="res://assets/UI/interact-btn.png" id="6_bmi0g"]
+[ext_resource type="Texture2D" uid="uid://jamwyueec32p" path="res://assets/ui/interact-btn.png" id="6_bmi0g"]
 [ext_resource type="Texture2D" uid="uid://ctblitnof5rox" path="res://assets/pastry/recipes/recipe_001_correct.png" id="6_th432"]
 [ext_resource type="Texture2D" uid="uid://cgsrm2me5ukx2" path="res://assets/pastry/recipes/recipe_001_gravitational.png" id="7_620rl"]
-[ext_resource type="Texture2D" uid="uid://bpv7ib6u2578q" path="res://assets/UI/interact-btn-pressed.png" id="7_qop8h"]
+[ext_resource type="Texture2D" uid="uid://bpv7ib6u2578q" path="res://assets/ui/interact-btn-pressed.png" id="7_qop8h"]
 [ext_resource type="Texture2D" uid="uid://w2n3jwjxdr0x" path="res://assets/pastry/recipes/recipe_001_wrong.png" id="7_th432"]
 [ext_resource type="LabelSettings" uid="uid://jdv1bfj4iff7" path="res://custom_resources/InteractionButtonLabels.tres" id="8_qop8h"]
 

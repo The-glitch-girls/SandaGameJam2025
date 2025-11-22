@@ -2,11 +2,11 @@
 
 [ext_resource type="Script" uid="uid://c3ly4kmn5k6ym" path="res://scripts/opciones_modal.gd" id="1_y1he4"]
 [ext_resource type="Texture2D" uid="uid://2n1ol4pwkj0p" path="res://assets/backgrounds/level1.png" id="2_xevi8"]
-[ext_resource type="Texture2D" uid="uid://d3lwpiqw5gj2j" path="res://assets/UI/text_message.png" id="3_57l0b"]
-[ext_resource type="Texture2D" uid="uid://c7orwwgt3mbq8" path="res://assets/UI/ic_volume_off_fill.png" id="3_tbubh"]
+[ext_resource type="Texture2D" uid="uid://d3lwpiqw5gj2j" path="res://assets/ui/text_message.png" id="3_57l0b"]
+[ext_resource type="Texture2D" uid="uid://c7orwwgt3mbq8" path="res://assets/ui/ic_volume_off_fill.png" id="3_tbubh"]
 [ext_resource type="FontFile" uid="uid://ch5rglkjpbnk2" path="res://assets/fonts/Macondo/Macondo-Regular.ttf" id="4_57l0b"]
-[ext_resource type="Texture2D" uid="uid://bgdu715qp5md0" path="res://assets/UI/ic_volume_on_fill.png" id="4_rckh6"]
-[ext_resource type="Texture2D" uid="uid://b810rbfrnlq87" path="res://assets/UI/close-btn.png" id="6_rckh6"]
+[ext_resource type="Texture2D" uid="uid://bgdu715qp5md0" path="res://assets/ui/ic_volume_on_fill.png" id="4_rckh6"]
+[ext_resource type="Texture2D" uid="uid://b810rbfrnlq87" path="res://assets/ui/close-btn.png" id="6_rckh6"]
 
 [node name="OpcionesModal" type="Control"]
 layout_mode = 3

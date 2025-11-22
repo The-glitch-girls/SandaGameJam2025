@@ -167,6 +167,7 @@ func stop_crowd_talking_sfx():
 		push_warning("SFXCrowdTalking no está asignado o no existe en AudioManager")
 
 func stop_newton_humming_sfx():	
+	print("STOPPING HUMMING")
 	if sfx_newton_humming and sfx_newton_humming.playing:
 		sfx_newton_humming.stop()
 	else:
