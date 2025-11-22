@@ -9,7 +9,7 @@ signal level_cleared
 
 var characters_mood_file_path = "res://i18n/characters_moods.json"
 var interact_btns_file_path = "res://i18n/interaction_texts.json"
-var customer_count = 1#4
+var customer_count = 1 if GameController.IS_TESTING else 4
 var current_customer: Node2D = null
 
 var center_frac_x := 0.5 # 0.25 cuando se abra el minijuego

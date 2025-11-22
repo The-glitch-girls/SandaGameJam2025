@@ -26,7 +26,7 @@ const SECONDS_TO_LOSE_NOT_PREPARED = 42
 const SECONDS_TO_GAIN = 15
 var LIVES = 1 if IS_TESTING else 4
 var MAX_LIVES = 2 if IS_TESTING else 4
-var ING_ARR_SIZE = 20 #Debe disminuir si el nivel aumenta
+var ING_ARR_SIZE = 20 #TO DO> Debe disminuir si el nivel aumenta
 var TIME_LEFT = 180.0
 var global_ranking: Array = []
 
