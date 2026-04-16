@@ -133,9 +133,12 @@ func slide_minigame_overlay(path: String):
 
 	if minigame_instance.has_signal("ingredients_minigame_started"):
 		minigame_instance.connect("ingredients_minigame_started", Callable(self, "_on_overlay_minigame_started"))
-		
+
 	if minigame_instance.has_signal("ingredients_minigame_timeout"):
 		minigame_instance.connect("ingredients_minigame_timeout", Callable(self, "_on_overlay_minigame_timeout"))
+
+	if minigame_instance.has_signal("recipe_selected"):
+		minigame_instance.connect("recipe_selected", Callable(self, "_on_recipe_selected"))
 
 	self.current_minigame = minigame_instance
 	
@@ -391,6 +394,7 @@ func reset_game():
 	
 # Senales
 func _on_ingredients_minigame_timeout():
+	print("⚠️ EJECUTANDO _on_ingredients_minigame_timeout")
 	# Obtener los resultados
 	var result = check_recipe()
 	
@@ -452,8 +456,27 @@ func _on_overlay_minigame_started():
 	emit_signal("ingredients_minigame_started")
 
 func _on_overlay_minigame_timeout():
+	print("⚠️ TIMEOUT desde OVERLAY")
 	emit_signal("ingredients_minigame_timeout")
 	_on_ingredients_minigame_timeout() # sigue llamando tu lógica actual
+
+func _on_recipe_selected(recipe_data: Dictionary, ingredients_array: Array) -> void:
+	# Cerrar el overlay y restaurar el nivel
+	finish_minigame()
+
+	# Iniciar ingredientes en el nivel principal
+	if current_level and current_level.has_method("start_ingredients_on_table"):
+		current_level.start_ingredients_on_table(recipe_data, ingredients_array)
+
+		# Conectar timeout del nivel si tiene la señal
+		if current_level.has_signal("ingredients_timeout") and not current_level.is_connected("ingredients_timeout", Callable(self, "_on_level_ingredients_timeout")):
+			current_level.connect("ingredients_timeout", Callable(self, "_on_level_ingredients_timeout"))
+
+func _on_level_ingredients_timeout() -> void:
+	print("⚠️ TIMEOUT desde NIVEL")
+	# Cuando los ingredientes del nivel terminan
+	emit_signal("ingredients_minigame_timeout")
+	_on_ingredients_minigame_timeout()
 
 func _prepare_final(state: GlobalManager.GameState):
 	print("preparing... ", state )
