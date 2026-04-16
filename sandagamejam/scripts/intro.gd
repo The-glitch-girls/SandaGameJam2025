@@ -3,7 +3,7 @@ extends Node2D
 @onready var btn_start: TextureButton = $Comenzar_Game
 @onready var text_intro: Label = $TextureRect/text_intro
 @onready var btn_back: Button = $BtnBack if has_node("BtnBack") else null 
-@onready var lbl_omit_intro: Label = $OmitIntro
+@onready var btn_omit_intro: Button = $OmitIntro
 
 
 var json_texts = {
@@ -32,6 +32,11 @@ var json_texts = {
 
 var texts = []
 var typing_speed := 0.05
+var skip_labels = {
+	"es": "Omitir intro >",
+	"en": "Skip intro >",
+	"fr": "Passer l'intro >"
+}
 var typing_timer: Timer
 var full_text := ""
 var char_index := 0
@@ -46,9 +51,13 @@ func _ready():
 	typing_timer.one_shot = false
 	typing_timer.timeout.connect(Callable(self, "_on_typing_timeout"))
 	add_child(typing_timer)
-	
+
 	_show_text(texts[current_index])
-	
+
+	# Configurar texto del botón omitir según idioma
+	if btn_omit_intro:
+		btn_omit_intro.text = skip_labels.get(GlobalManager.game_language, skip_labels["es"])
+
 	btn_start.pressed.connect(_on_btn_start_pressed)
 	if has_node("BtnBack"):
 		btn_back.pressed.connect(_on_btn_back_pressed)
@@ -91,11 +100,7 @@ func _on_btn_back_pressed():
 	AudioManager.play_click_sfx()
 	get_tree().change_scene_to_file("res://scenes/menus/MainMenu.tscn")
 
-func _input(event):
-	if lbl_omit_intro and lbl_omit_intro.get_global_rect().has_point(get_viewport().get_mouse_position()):
-		if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:_skip_intro()
-
-func _skip_intro():
+func _on_omit_intro_pressed():
 	AudioManager.play_click_sfx()
 	var level_1_path = "res://scenes/levels/PastryLevel1.tscn"
 	GlobalManager.start_game()
