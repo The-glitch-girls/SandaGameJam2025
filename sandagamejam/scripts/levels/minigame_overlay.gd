@@ -359,7 +359,7 @@ func generate_arr(base: Array, base_len: int) -> Array:
 		add_random_ingredients(result, GlobalManager.gravitational_ingredients)
 	
 	
-	while result.size() < base_len:
+	while result.size() < base_len and base.size() > 0:
 		var rand = base[randi() % base.size()]
 		result.append(rand)
 	
@@ -376,6 +376,8 @@ func shuffle_array(arr: Array) -> void:
 		arr[j] = temp
 
 func add_random_ingredients(result: Array, source_array: Array) -> void:
+	if source_array.size() == 0:
+		return
 	var count = 2 #TODO: incrementar segun cada nivel, randi() % (max_count + 1)
 	for i in range(count):
 		var ing = source_array[randi() % source_array.size()]
