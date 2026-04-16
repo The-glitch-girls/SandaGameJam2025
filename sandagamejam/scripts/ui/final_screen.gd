@@ -13,6 +13,7 @@ extends Control
 @onready var name_label = $ScoreContainer/Name
 @onready var ranking_container = $RankingContainer
 @onready var play_again_btn = $BtnPlayAgain
+@onready var back_to_menu_btn = $BtnBackToMenu
 @onready var recipe_texture = $Recipe
 @onready var loading_label = $LoadingLabel
 
@@ -106,17 +107,27 @@ func show_final_screen(state: GlobalManager.GameState):
 	
 func show_name_label():
 	var display = ""
-	
+
 	if not add_new_score:
 		name_label.text = display
+		# Si no califica para ranking, mostrar botones directamente
+		show_buttons()
 		return
-	
+
 	for i in range(max_name_length):
 		if i < current_name.size():
 			display += current_name[i] + ""
 		else:
 			display += "_ "
-	name_label.text =  menu_labels["ranking"]["name"] + "\n" + display 
+	name_label.text =  menu_labels["ranking"]["name"] + "\n" + display
+
+func show_buttons():
+	var label = play_again_btn.get_node("Label")
+	label.text = menu_labels["play_again"]
+	var back_label = back_to_menu_btn.get_node("Label")
+	back_label.text = menu_labels.get("back_to_menu", "Menú principal")
+	play_again_btn.visible = true
+	back_to_menu_btn.visible = true 
 	
 
 func animate_loading_label():
@@ -191,10 +202,8 @@ func is_player_in_ranking(score_value: int) -> bool:
 
 func show_ranking():
 	loading_label.visible = false
-	
-	var label = play_again_btn.get_node("Label")
-	label.text = menu_labels["play_again"] 
 	ranking_container.visible = true
+	show_buttons()
 	
 	
 func _on_AnimationPlayer_animation_finished(anim_name):
@@ -207,6 +216,11 @@ func _on_btn_play_again_pressed() -> void:
 	queue_free()
 	AudioManager.play_click_sfx()
 	GameController.reset_game()
+
+func _on_btn_back_to_menu_pressed() -> void:
+	queue_free()
+	AudioManager.play_click_sfx()
+	GameController.load_main_menu()
 	
 func _build_entries() -> void:
 	free_container_children()
