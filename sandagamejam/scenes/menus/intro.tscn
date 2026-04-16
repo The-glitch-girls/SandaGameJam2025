@@ -46,3 +46,14 @@ offset_right = 719.0
 offset_bottom = 560.0
 scale = Vector2(1.2, 1.2)
 texture_normal = ExtResource("5_uh46f")
+
+[node name="OmitIntro" type="Button" parent="."]
+offset_left = 1000.0
+offset_top = 20.0
+offset_right = 1140.0
+offset_bottom = 55.0
+theme_override_font_sizes/font_size = 16
+text = "Omitir intro >"
+flat = true
+
+[connection signal="pressed" from="OmitIntro" to="." method="_on_omit_intro_pressed"]

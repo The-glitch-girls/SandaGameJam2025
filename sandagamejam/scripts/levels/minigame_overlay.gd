@@ -3,6 +3,7 @@ extends Node2D
 
 signal ingredients_minigame_started
 signal ingredients_minigame_timeout
+signal recipe_selected(recipe_data: Dictionary, ingredients_array: Array)
 
 @onready var menu_container : Control = $TextureRect/MenuContainer
 @onready var recipe_container : Control = $TextureRect/RecipeContainer
@@ -38,6 +39,10 @@ func hide_recollect_container():
 
 func show_recollect_container():
 	recollect_container.visible = true
+	# Ocultar el Bowl (Isaac con bowl)
+	var bowl = recollect_container.get_node_or_null("Bowl")
+	if bowl:
+		bowl.visible = false
 
 func fill_ingredients_textrect(instance: Node) -> void:
 	if not instance:
@@ -194,69 +199,113 @@ func create_ingredient_physics(ingredient_id: String) -> Area2D:
 	if not ResourceLoader.exists(path): return null
 
 	var tex = load(path)
-	
+
 	var area = Area2D.new()
 	area.add_to_group("ingredients") # ¡Esto es lo que busca el Bowl!
 	area.set_meta("id", ingredient_id)
-	
+
 	var sprite = Sprite2D.new()
 	sprite.texture = tex
 	sprite.scale = Vector2(0.3, 0.3)
 	area.add_child(sprite)
-	
+
 	var collision = CollisionShape2D.new()
 	var shape = CircleShape2D.new()
 	shape.radius = 30 # Radio de colisión
 	collision.shape = shape
 	area.add_child(collision)
-	
+
 	area.z_index = 1
 	return area
+
+func create_ingredient_clickable(ingredient_id: String) -> Area2D:
+	var path = "res://assets/pastry/ingredients/%s.png" % ingredient_id
+	if not ResourceLoader.exists(path): return null
+
+	var tex = load(path)
+
+	var area = Area2D.new()
+	area.add_to_group("ingredients")
+	area.set_meta("id", ingredient_id)
+	area.input_pickable = true
+
+	var sprite = Sprite2D.new()
+	sprite.texture = tex
+	sprite.scale = Vector2(0.35, 0.35)
+	area.add_child(sprite)
+
+	var collision = CollisionShape2D.new()
+	var shape = CircleShape2D.new()
+	shape.radius = 40
+	collision.shape = shape
+	area.add_child(collision)
+
+	area.z_index = 1
+
+	# Conectar señal de input para detectar clicks
+	area.input_event.connect(_on_ingredient_area_clicked.bind(area, ingredient_id))
+
+	return area
+
+func _on_ingredient_area_clicked(_viewport: Node, event: InputEvent, _shape_idx: int, area: Area2D, ing_id: String) -> void:
+	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+		AudioManager.play_collect_ingredient_sfx()
+		GlobalManager.collected_ingredients.append(ing_id)
+
+		# Animacion de recoleccion
+		var tween = create_tween()
+		tween.tween_property(area, "scale", Vector2(1.3, 1.3), 0.1)
+		tween.tween_property(area, "modulate:a", 0.0, 0.15)
+		tween.tween_callback(area.queue_free)
+
+		# Habilitar boton de preparar
+		check_prepare_button()
 	
 func animate_ingredients(ingr_loop: Array) -> void:
-	print("🥣 INICIO CAÍDA FÍSICA: ", ingr_loop)
+	print("🥣 INICIO MOVIMIENTO HORIZONTAL: ", ingr_loop)
 	var container := recollect_container
-	
-	
+
+	# Ocultar el Bowl (Isaac)
+	var bowl = container.get_node_or_null("Bowl")
+	if bowl:
+		bowl.visible = false
+
 	clear_children_except_bowl(container)
 
-	
-	var start_y := -100.0
-	var end_y := container.size.y + 150.0
-	var min_x := 50.0
-	var max_x := container.size.x - 50.0
-	var duration := 3.0
-	var spawn_interval := 0.8
+	# Movimiento horizontal de derecha a izquierda
+	var viewport_size = get_viewport().get_visible_rect().size
+	var start_x: float = viewport_size.x + 100.0
+	var end_x: float = -150.0
+	var table_y: float = 500.0  # Altura sobre la mesa
+	var duration: float = 5.0
+	var spawn_interval: float = 0.9
 
 	for i in range(ingr_loop.size()):
 		var ing_id = ingr_loop[i]
-		
-	
-		var new_ing = create_ingredient_physics(ing_id)
+
+		var new_ing = create_ingredient_clickable(ing_id)
 		if not new_ing: continue
-		
+
 		container.add_child(new_ing)
-		
 
-		
-		var random_x = randf_range(min_x, max_x)
-		new_ing.position = Vector2(random_x, start_y)
+		# Posicion vertical con pequeña variacion aleatoria
+		var random_y = table_y + randf_range(-30.0, 30.0)
+		new_ing.position = Vector2(start_x, random_y)
 
-	
 		var tween := create_tween()
-		tween.tween_property(new_ing, "position:y", end_y, duration) \
+		tween.tween_property(new_ing, "position:x", end_x, duration) \
 			.set_trans(Tween.TRANS_LINEAR) \
 			.set_delay(spawn_interval * i)
-			
+
 		tween.tween_callback(Callable(new_ing, "queue_free"))
 		active_tweens.append(tween)
-	
-		
+
 		if i == ingr_loop.size() - 1:
 			tween.finished.connect(func():
+				print("⚠️ OVERLAY: Último tween terminado, emitiendo timeout")
 				hide_recollect_container()
 				btn_prepare.visible = false
-				
+
 				emit_signal("ingredients_minigame_timeout")
 			)
 			
@@ -357,29 +406,50 @@ func _on_btn_back_pressed() -> void:
 
 func _on_btn_continue_pressed() -> void:
 	AudioManager.play_click_sfx()
+
+	# Preparar datos de la receta
+	emit_signal("ingredients_minigame_started")
+	minigame_started = true
+	var recipe_selected = GlobalManager.current_level_recipes[GlobalManager.selected_recipe_idx]
+	GlobalManager.selected_recipe_data = recipe_selected
+
+	var array_size = GlobalManager.ingredientes_array_size
+	var ingredients = recipe_selected["ingredients"]
+	var ingr_loop = generate_arr(ingredients, array_size)
+
+	# Ocultar containers del overlay
 	hide_recipe_container()
 	hide_menu_container()
-	show_recollect_container()
-	start_ingredient_minigame()
-	
+
+	# Emitir señal para que el nivel muestre los ingredientes
+	emit_signal("recipe_selected", recipe_selected, ingr_loop)
+
+	# Mostrar el menu de ingredientes (receta pequeña)
 	var instance = show_ingredients_textrect()
 	fill_ingredients_textrect(instance)
+
+	# Mostrar boton de preparar (deshabilitado hasta que seleccione ingredientes)
+	btn_prepare.visible = true
+	btn_prepare.disabled = true
 	
 func _on_btn_prepare_recipe_pressed() -> void:
 	AudioManager.play_click_sfx()
 	AudioManager.stop_newton_humming_sfx()
 	GlobalManager.recipe_started = true
-	
+
 	if minigame_started:
-		 
 		for t in active_tweens:
 			if is_instance_valid(t):
 				t.kill()
 		active_tweens.clear()
-		
-		
+
 		clear_children(recollect_container)
-		
+
+		# Detener ingredientes en el nivel principal
+		var level = get_tree().get_first_node_in_group("levels")
+		if level and level.has_method("stop_ingredients_minigame"):
+			level.stop_ingredients_minigame()
+
 		minigame_started = false
 		btn_prepare.visible = false
 		GameController.make_newton_cook()

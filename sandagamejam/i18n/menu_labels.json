@@ -18,7 +18,8 @@
 				"time_up": "¡Tiempo!",
 				"game_over": "¡Ay no! :(",
 			},
-			"play_again": "Volver a jugar"
+			"play_again": "Volver a jugar",
+			"back_to_menu": "Menú principal"
 		},
 	"en":
 		{
@@ -39,7 +40,8 @@
 				"time_up": "Time's up!",
 				"game_over": "Oh no! :(",
 			},
-			"play_again": "Play again"
+			"play_again": "Play again",
+			"back_to_menu": "Main menu"
 		},
 	"fr":
 		{
@@ -60,6 +62,7 @@
 				"time_up": "Trop!",
 				"game_over": "Oh non :("
 			},
-			"play_again": "Rejouer"
+			"play_again": "Rejouer",
+			"back_to_menu": "Menu principal"
 		}
 }

@@ -430,4 +430,35 @@ text = "Volver a jugar"
 label_settings = ExtResource("10_kmylr")
 horizontal_alignment = 1
 
+[node name="BtnBackToMenu" type="TextureButton" parent="."]
+visible = false
+z_index = 3
+layout_mode = 2
+offset_left = 461.0
+offset_top = 590.0
+offset_right = 708.0
+offset_bottom = 666.0
+size_flags_horizontal = 0
+texture_normal = ExtResource("7_3v14m")
+texture_pressed = ExtResource("8_nsh0p")
+texture_disabled = ExtResource("9_l1772")
+
+[node name="Label" type="Label" parent="BtnBackToMenu"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -78.0
+offset_top = -15.0
+offset_right = 78.0
+offset_bottom = 15.0
+grow_horizontal = 2
+grow_vertical = 2
+text = "Menú principal"
+label_settings = ExtResource("10_kmylr")
+horizontal_alignment = 1
+
 [connection signal="pressed" from="BtnPlayAgain" to="." method="_on_btn_play_again_pressed"]
+[connection signal="pressed" from="BtnBackToMenu" to="." method="_on_btn_back_to_menu_pressed"]
