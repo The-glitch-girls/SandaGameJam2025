@@ -44,6 +44,12 @@ var ranking: Array = []
 var menu_labels = GlobalManager.menu_labels[GlobalManager.game_language]
 var settings_instance = preload("res://custom_resources/Ranking.tres").duplicate()
 
+# Efectos de celebracion
+var confetti_container: Node2D = null
+var confetti_timer: Timer = null
+var newton_bounce_tween: Tween = null
+var current_state: GlobalManager.GameState
+
 func _ready():
 	AudioManager.play_end_music()
 	if GlobalManager.satisfied_customers.size() == 0:
@@ -81,6 +87,7 @@ func _input(event: InputEvent) -> void:
 	
 # state puede ser: "win", "lose", "timeup"
 func show_final_screen(state: GlobalManager.GameState):
+	current_state = state
 	AudioManager.stop_game_music()
 	score_panel.visible = false
 	recipe_texture.texture = recipe_fail
@@ -97,13 +104,19 @@ func show_final_screen(state: GlobalManager.GameState):
 			newton.texture = newton_win
 			message_label.text = menu_labels["final_screen"]["win"]
 			AudioManager.play_win_sfx()
+			# Iniciar confeti y celebracion
+			start_confetti_celebration()
 		GlobalManager.GameState.GAMEOVER:
 			bg.texture = bg_fail
 			newton.texture = newton_fail
 			message_label.text = menu_labels["final_screen"]["game_over"]
 			AudioManager.play_game_over_sfx()
-	
+
 	anim.play("final_sequence")
+
+	# Iniciar animacion de Newton despues de que entre
+	await get_tree().create_timer(3.5).timeout
+	start_newton_animation(state)
 	
 func show_name_label():
 	var display = ""
@@ -248,4 +261,132 @@ func free_container_children():
 func hide_player_score_labels():
 	message.visible = false
 	score_container.visible = false
-	
+
+# ============ EFECTOS DE CELEBRACION ============
+
+func start_confetti_celebration() -> void:
+	# Crear contenedor para confeti
+	if confetti_container and is_instance_valid(confetti_container):
+		confetti_container.queue_free()
+
+	confetti_container = Node2D.new()
+	confetti_container.name = "ConfettiContainer"
+	confetti_container.z_index = 50
+	add_child(confetti_container)
+
+	# Timer para crear confeti continuamente
+	if confetti_timer and is_instance_valid(confetti_timer):
+		confetti_timer.queue_free()
+
+	confetti_timer = Timer.new()
+	confetti_timer.wait_time = 0.05
+	confetti_timer.autostart = true
+	add_child(confetti_timer)
+	confetti_timer.timeout.connect(create_confetti_particle)
+
+	# Detener confeti despues de unos segundos
+	await get_tree().create_timer(5.0).timeout
+	stop_confetti()
+
+func create_confetti_particle() -> void:
+	if not confetti_container or not is_instance_valid(confetti_container):
+		return
+
+	var colors = [
+		Color(1, 0.3, 0.3),    # Rojo
+		Color(1, 0.8, 0.2),    # Amarillo
+		Color(0.3, 0.8, 0.3),  # Verde
+		Color(0.3, 0.6, 1),    # Azul
+		Color(1, 0.5, 0.8),    # Rosa
+		Color(0.8, 0.4, 1),    # Morado
+	]
+
+	var viewport_size = get_viewport().get_visible_rect().size
+
+	if colors.size() == 0:
+		return
+
+	var confetti = ColorRect.new()
+	confetti.size = Vector2(randf_range(8, 16), randf_range(4, 8))
+	confetti.color = colors[randi() % colors.size()]
+	confetti.position = Vector2(randf_range(0, viewport_size.x), -20)
+	confetti.rotation = randf() * TAU
+	confetti_container.add_child(confetti)
+
+	# Animacion de caida con movimiento lateral
+	var end_y = viewport_size.y + 50
+	var lateral_offset = randf_range(-100, 100)
+	var duration = randf_range(2.0, 4.0)
+
+	var tween = create_tween()
+	tween.set_parallel(true)
+	tween.tween_property(confetti, "position:y", end_y, duration).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+	tween.tween_property(confetti, "position:x", confetti.position.x + lateral_offset, duration)
+	tween.tween_property(confetti, "rotation", confetti.rotation + randf_range(-TAU, TAU), duration)
+	tween.set_parallel(false)
+	tween.tween_callback(confetti.queue_free)
+
+func stop_confetti() -> void:
+	if confetti_timer and is_instance_valid(confetti_timer):
+		confetti_timer.stop()
+		confetti_timer.queue_free()
+		confetti_timer = null
+
+func start_newton_animation(state: GlobalManager.GameState) -> void:
+	if newton_bounce_tween and newton_bounce_tween.is_running():
+		newton_bounce_tween.kill()
+
+	var original_scale = newton.scale
+
+	match state:
+		GlobalManager.GameState.WIN:
+			# Animacion de celebracion: bounce y rotacion
+			newton_bounce_tween = create_tween().set_loops()
+			newton_bounce_tween.tween_property(newton, "scale", original_scale * 1.1, 0.2).set_trans(Tween.TRANS_SINE)
+			newton_bounce_tween.tween_property(newton, "scale", original_scale * 0.95, 0.2).set_trans(Tween.TRANS_SINE)
+			newton_bounce_tween.tween_property(newton, "scale", original_scale, 0.1)
+
+			# Rotacion suave
+			var rotation_tween = create_tween().set_loops()
+			rotation_tween.tween_property(newton, "rotation", deg_to_rad(5), 0.15)
+			rotation_tween.tween_property(newton, "rotation", deg_to_rad(-5), 0.3)
+			rotation_tween.tween_property(newton, "rotation", 0, 0.15)
+
+		GlobalManager.GameState.TIMEUP, GlobalManager.GameState.GAMEOVER:
+			# Animacion de tristeza: movimiento lento y llorando
+			newton_bounce_tween = create_tween().set_loops()
+			newton_bounce_tween.tween_property(newton, "position:y", newton.position.y + 5, 1.0).set_trans(Tween.TRANS_SINE)
+			newton_bounce_tween.tween_property(newton, "position:y", newton.position.y - 5, 1.0).set_trans(Tween.TRANS_SINE)
+
+			# Lagrimas (particulas)
+			create_tear_effect()
+
+func create_tear_effect() -> void:
+	var tear_timer = Timer.new()
+	tear_timer.wait_time = 0.8
+	tear_timer.autostart = true
+	add_child(tear_timer)
+
+	tear_timer.timeout.connect(func():
+		if not newton or not is_instance_valid(newton):
+			tear_timer.queue_free()
+			return
+
+		var tear = ColorRect.new()
+		tear.size = Vector2(4, 8)
+		tear.color = Color(0.5, 0.7, 1, 0.8)
+		tear.position = newton.position + Vector2(randf_range(-20, 20), 30)
+		tear.z_index = 51
+		add_child(tear)
+
+		var tween = create_tween()
+		tween.tween_property(tear, "position:y", tear.position.y + 60, 0.8)
+		tween.parallel().tween_property(tear, "modulate:a", 0.0, 0.8)
+		tween.tween_callback(tear.queue_free)
+	)
+
+	# Detener lagrimas despues de un tiempo
+	await get_tree().create_timer(6.0).timeout
+	if tear_timer and is_instance_valid(tear_timer):
+		tear_timer.queue_free()
+
