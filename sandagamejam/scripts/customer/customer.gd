@@ -25,9 +25,22 @@ var texts: Dictionary
 var language: String
 
 var state = GlobalManager.State.ENTERING
-	
+
+# Animaciones de espera
+var idle_tween: Tween = null
+var mood_timer: Timer = null
+var wait_time: float = 0.0
+var current_patience_level: int = 0  # 0=feliz, 1=neutral, 2=impaciente, 3=molesto
+const PATIENCE_THRESHOLDS = [8.0, 16.0, 24.0]  # Segundos para cada nivel de impaciencia
+
 func _ready():
 	pass
+
+func _process(delta: float) -> void:
+	# Actualizar tiempo de espera solo cuando el cliente esta sentado
+	if state == GlobalManager.State.SEATED:
+		wait_time += delta
+		update_patience_expression()
 	
 # Setup: Preparar, reinicializar data del cliente
 func setup(data: Dictionary, lang: String):
@@ -53,11 +66,15 @@ func move_to(target_position: Vector2) -> void:
 func customer_positioned():
 	sfx_entering.stop()
 	set_state(GlobalManager.State.SEATED)
-	
+
 	var label = btn_listen.get_node("Label")
 	label.text = GlobalManager.btn_listen_customer_label
 	btn_listen.visible = true
-	
+
+	# Iniciar animacion de espera
+	start_idle_animation()
+	wait_time = 0.0
+
 	emit_signal("arrived_at_center", self)
 
 func set_state(new_state: GlobalManager.State):
@@ -109,11 +126,13 @@ func get_target_position() -> Vector2:
 	
 # Cambios de estados:
 func react_angry():
+	reset_waiting_state()
 	AudioManager.play_customer_sfx(GlobalManager.current_customer.genre, GlobalManager.current_customer.mood_id, true)
 	set_state(GlobalManager.State.FAIL)
 	GlobalManager.return_customer()
 
 func react_happy():
+	reset_waiting_state()
 	AudioManager.play_customer_sfx(GlobalManager.current_customer.genre, "happy", true)
 	set_state(GlobalManager.State.SUCCESS)
 	GlobalManager.mark_customer_as_satisfied()
@@ -140,7 +159,88 @@ func load_customer_texture(path: String, alt_path: String):
 	
 func hide_listen_button():
 	btn_listen.visible = false
-	
+
+# ============ ANIMACIONES DE ESPERA ============
+
+func start_idle_animation() -> void:
+	if idle_tween and idle_tween.is_running():
+		return
+
+	idle_tween = create_tween().set_loops()
+	var original_y = sprite.position.y
+
+	# Animacion de respiracion sutil (movimiento vertical)
+	idle_tween.tween_property(sprite, "position:y", original_y - 3, 1.0).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	idle_tween.tween_property(sprite, "position:y", original_y + 2, 1.0).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+
+func stop_idle_animation() -> void:
+	if idle_tween and idle_tween.is_running():
+		idle_tween.kill()
+		idle_tween = null
+	sprite.position.y = 0
+
+func update_patience_expression() -> void:
+	var new_level = 0
+
+	for i in range(PATIENCE_THRESHOLDS.size()):
+		if wait_time >= PATIENCE_THRESHOLDS[i]:
+			new_level = i + 1
+
+	# Solo actualizar si cambio el nivel de paciencia
+	if new_level != current_patience_level:
+		current_patience_level = new_level
+		apply_patience_visual()
+
+func apply_patience_visual() -> void:
+	# Aplicar efectos visuales segun nivel de paciencia
+	match current_patience_level:
+		0:  # Feliz - normal
+			sprite.modulate = Color(1, 1, 1)
+		1:  # Neutral - ligeramente desaturado
+			sprite.modulate = Color(0.95, 0.95, 0.9)
+			show_impatience_indicator("...")
+		2:  # Impaciente - mas desaturado, leve sacudida
+			sprite.modulate = Color(0.9, 0.85, 0.8)
+			show_impatience_indicator("?")
+			shake_customer()
+		3:  # Molesto - tinte rojizo, sacudida mas fuerte
+			sprite.modulate = Color(1.0, 0.8, 0.75)
+			show_impatience_indicator("!")
+			shake_customer()
+
+func show_impatience_indicator(symbol: String) -> void:
+	# Crear indicador temporal sobre el cliente
+	var indicator = Label.new()
+	indicator.text = symbol
+	indicator.add_theme_font_size_override("font_size", 28)
+	indicator.add_theme_color_override("font_color", Color(0.8, 0.3, 0.2))
+	indicator.position = Vector2(20, -get_sprite_size().y / 2 - 40)
+	indicator.z_index = 100
+	add_child(indicator)
+
+	# Animacion de aparicion
+	indicator.modulate.a = 0
+	var tween = create_tween()
+	tween.tween_property(indicator, "modulate:a", 1.0, 0.2)
+	tween.tween_property(indicator, "position:y", indicator.position.y - 15, 0.3).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	tween.tween_interval(1.5)
+	tween.tween_property(indicator, "modulate:a", 0.0, 0.3)
+	tween.tween_callback(indicator.queue_free)
+
+func shake_customer() -> void:
+	var original_x = sprite.position.x
+	var tween = create_tween()
+	tween.tween_property(sprite, "position:x", original_x + 5, 0.05)
+	tween.tween_property(sprite, "position:x", original_x - 5, 0.1)
+	tween.tween_property(sprite, "position:x", original_x + 3, 0.1)
+	tween.tween_property(sprite, "position:x", original_x, 0.05)
+
+func reset_waiting_state() -> void:
+	wait_time = 0.0
+	current_patience_level = 0
+	sprite.modulate = Color(1, 1, 1)
+	stop_idle_animation()
+
 # Obtener factor uniforme para la escala
 func get_scale_factor():
 	var viewport_size: Vector2 = get_viewport().size
