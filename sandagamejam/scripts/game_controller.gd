@@ -36,6 +36,8 @@ var current_minigame: Node = null
 var newton_original_scale: Vector2 = Vector2(0.22, 0.22)
 var newton_original_pos: Vector2 = Vector2(978.0, 472)
 var pending_final_state : Variant = null
+var pause_screen: Control = null
+var is_paused: bool = false
 
 # Diccionario de equivalencias normales → gravitacionales
 var gravitational_equivalents = {
@@ -99,7 +101,12 @@ func show_minigame(path: String):
 		
 func finish_minigame():
 	emit_signal("ingredients_minigame_finished")
-	slide_current_level("right")
+
+	# Solo deslizar si el overlay estaba visible (evita deslizar múltiples veces)
+	if GlobalManager.is_minigame_overlay_visible:
+		slide_current_level("right")
+		GlobalManager.is_minigame_overlay_visible = false
+
 	reset_newton_ready()
 	
 	# Si existe minigame_instance guardado, animar antes de eliminarlo
@@ -175,14 +182,17 @@ func slide_current_level(direction: String = "left", duration: float = 0.5):
 
 # Empezar a cocinar
 # print("🧑🏽‍🍳 Newton esta cocinando")
-func make_newton_cook():	
+func make_newton_cook():
 	newton_ready_sprite.visible = false
 	newton_moods_sprite.visible = true
 	AudioManager.play_whisking_sfx()
-	
+
+	var original_scale = newton_moods_sprite.scale
+	var original_rotation = newton_moods_sprite.rotation
+
 	# Hacer flip horizontal repetidamente
 	var flip_timer := Timer.new()
-	flip_timer.wait_time = 0.2 # cada 0.2 segundos cambia de lado
+	flip_timer.wait_time = 0.2
 	flip_timer.autostart = true
 	flip_timer.one_shot = false
 	add_child(flip_timer)
@@ -190,12 +200,43 @@ func make_newton_cook():
 	flip_timer.timeout.connect(func():
 		newton_moods_sprite.flip_h = !newton_moods_sprite.flip_h
 	)
-	
+
+	# Animación de bounce (escala)
+	var bounce_tween = create_tween().set_loops()
+	bounce_tween.tween_property(newton_moods_sprite, "scale", original_scale * 1.1, 0.15).set_trans(Tween.TRANS_SINE)
+	bounce_tween.tween_property(newton_moods_sprite, "scale", original_scale * 0.95, 0.15).set_trans(Tween.TRANS_SINE)
+
+	# Animación de rotación oscilante
+	var rotation_tween = create_tween().set_loops()
+	rotation_tween.tween_property(newton_moods_sprite, "rotation", deg_to_rad(5), 0.1).set_trans(Tween.TRANS_SINE)
+	rotation_tween.tween_property(newton_moods_sprite, "rotation", deg_to_rad(-5), 0.2).set_trans(Tween.TRANS_SINE)
+	rotation_tween.tween_property(newton_moods_sprite, "rotation", 0.0, 0.1).set_trans(Tween.TRANS_SINE)
+
+	# Partículas de cocina
+	var particle_timer := Timer.new()
+	particle_timer.wait_time = 0.15
+	particle_timer.autostart = true
+	particle_timer.one_shot = false
+	add_child(particle_timer)
+
+	particle_timer.timeout.connect(func():
+		create_cooking_particle(newton_moods_sprite.global_position + Vector2(0, -30))
+	)
+
 	# Detener animación después de 2 segundos
-	var tween := get_tree().create_timer(2.0)
-	tween.timeout.connect(func():
+	var end_timer := get_tree().create_timer(2.0)
+	end_timer.timeout.connect(func():
 		flip_timer.stop()
 		flip_timer.queue_free()
+		particle_timer.stop()
+		particle_timer.queue_free()
+		bounce_tween.kill()
+		rotation_tween.kill()
+
+		# Restaurar estado original
+		newton_moods_sprite.scale = original_scale
+		newton_moods_sprite.rotation = original_rotation
+
 		AudioManager.stop_whisking_sfx()
 		# Obtener los resultados
 		var result = check_recipe()
@@ -205,6 +246,27 @@ func make_newton_cook():
 		await show_recipe_result_with_delay(result)
 		show_netown_feedback()
 	)
+
+func create_cooking_particle(pos: Vector2) -> void:
+	var particle = ColorRect.new()
+	var colors = [Color(1, 1, 0.8), Color(1, 0.9, 0.6), Color(0.9, 0.8, 0.5)]  # Tonos de mezcla
+	if colors.size() == 0:
+		return
+	particle.color = colors[randi() % colors.size()]
+	particle.size = Vector2(6, 6)
+	particle.position = pos + Vector2(randf_range(-20, 20), 0)
+	particle.z_index = 50
+	newton_layer.add_child(particle)
+
+	var target_y = pos.y - randf_range(40, 80)
+	var target_x = pos.x + randf_range(-30, 30)
+
+	var tween = create_tween()
+	tween.set_parallel(true)
+	tween.tween_property(particle, "position", Vector2(target_x, target_y), 0.4).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	tween.tween_property(particle, "modulate:a", 0.0, 0.4)
+	tween.set_parallel(false)
+	tween.tween_callback(particle.queue_free)
 
 func show_netown_feedback():
 	var continue_btn_label = continue_button.get_node("Label")
@@ -520,10 +582,168 @@ func load_final_screen(state: GlobalManager.GameState):
 		print("TWEEN FINISHED")
 		#_cleanup_minigames()
 		#hide_continue_btn()
-		
+
 		# Restaurar Newton
 		#reset_newton_ready()
 		# Ocultar minijuegos
 		#finish_minigame()
-	
+
 	)
+
+# ============ PANTALLA DE PAUSA ============
+
+func _input(event: InputEvent) -> void:
+	if event.is_action_pressed("ui_cancel"):  # ESC por defecto
+		if is_paused:
+			resume_game()
+		else:
+			# Solo pausar si hay un nivel activo
+			if current_level and is_instance_valid(current_level):
+				pause_game()
+
+func pause_game() -> void:
+	if is_paused or pending_final_state != null:
+		return
+
+	is_paused = true
+	get_tree().paused = true
+	create_pause_screen()
+
+func resume_game() -> void:
+	if not is_paused:
+		return
+
+	is_paused = false
+	get_tree().paused = false
+	hide_pause_screen()
+
+func create_pause_screen() -> void:
+	if pause_screen and is_instance_valid(pause_screen):
+		pause_screen.queue_free()
+
+	pause_screen = Control.new()
+	pause_screen.name = "PauseScreen"
+	pause_screen.process_mode = Node.PROCESS_MODE_ALWAYS
+	pause_screen.set_anchors_preset(Control.PRESET_FULL_RECT)
+	pause_screen.z_index = 200
+
+	# Fondo semi-transparente
+	var bg = ColorRect.new()
+	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
+	bg.color = Color(0.1, 0.08, 0.05, 0.85)
+	pause_screen.add_child(bg)
+
+	# Panel central
+	var panel = PanelContainer.new()
+	panel.custom_minimum_size = Vector2(400, 350)
+	panel.set_anchors_preset(Control.PRESET_CENTER)
+	panel.position = Vector2(-200, -175)
+
+	var style = StyleBoxFlat.new()
+	style.bg_color = Color(0.25, 0.2, 0.15, 0.98)
+	style.corner_radius_top_left = 20
+	style.corner_radius_top_right = 20
+	style.corner_radius_bottom_left = 20
+	style.corner_radius_bottom_right = 20
+	style.border_width_top = 4
+	style.border_width_bottom = 4
+	style.border_width_left = 4
+	style.border_width_right = 4
+	style.border_color = Color(1, 0.85, 0.4)
+	style.content_margin_top = 30
+	style.content_margin_bottom = 30
+	style.content_margin_left = 40
+	style.content_margin_right = 40
+	panel.add_theme_stylebox_override("panel", style)
+	pause_screen.add_child(panel)
+
+	# Contenedor vertical
+	var vbox = VBoxContainer.new()
+	vbox.add_theme_constant_override("separation", 25)
+	vbox.alignment = BoxContainer.ALIGNMENT_CENTER
+	panel.add_child(vbox)
+
+	# Titulo
+	var title = Label.new()
+	title.text = "PAUSA"
+	title.add_theme_font_size_override("font_size", 42)
+	title.add_theme_color_override("font_color", Color(1, 0.9, 0.6))
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	vbox.add_child(title)
+
+	# Espaciador
+	var spacer = Control.new()
+	spacer.custom_minimum_size = Vector2(0, 10)
+	vbox.add_child(spacer)
+
+	# Botones
+	var btn_continue = create_pause_button("Continuar")
+	btn_continue.pressed.connect(resume_game)
+	vbox.add_child(btn_continue)
+
+	var btn_restart = create_pause_button("Reiniciar")
+	btn_restart.pressed.connect(func():
+		resume_game()
+		reset_game()
+	)
+	vbox.add_child(btn_restart)
+
+	var btn_menu = create_pause_button("Menu Principal")
+	btn_menu.pressed.connect(func():
+		resume_game()
+		load_main_menu()
+	)
+	vbox.add_child(btn_menu)
+
+	overlay_layer.add_child(pause_screen)
+
+	# Animacion de entrada
+	panel.scale = Vector2(0.8, 0.8)
+	panel.modulate.a = 0
+	var tween = create_tween()
+	tween.set_parallel(true)
+	tween.tween_property(panel, "scale", Vector2(1, 1), 0.2).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	tween.tween_property(panel, "modulate:a", 1.0, 0.2)
+
+func create_pause_button(text: String) -> Button:
+	var btn = Button.new()
+	btn.text = text
+	btn.custom_minimum_size = Vector2(250, 50)
+
+	var style_normal = StyleBoxFlat.new()
+	style_normal.bg_color = Color(0.4, 0.3, 0.2)
+	style_normal.corner_radius_top_left = 10
+	style_normal.corner_radius_top_right = 10
+	style_normal.corner_radius_bottom_left = 10
+	style_normal.corner_radius_bottom_right = 10
+	style_normal.border_width_top = 2
+	style_normal.border_width_bottom = 2
+	style_normal.border_width_left = 2
+	style_normal.border_width_right = 2
+	style_normal.border_color = Color(0.6, 0.5, 0.3)
+	btn.add_theme_stylebox_override("normal", style_normal)
+
+	var style_hover = style_normal.duplicate()
+	style_hover.bg_color = Color(0.5, 0.4, 0.25)
+	style_hover.border_color = Color(1, 0.85, 0.4)
+	btn.add_theme_stylebox_override("hover", style_hover)
+
+	var style_pressed = style_normal.duplicate()
+	style_pressed.bg_color = Color(0.3, 0.25, 0.15)
+	btn.add_theme_stylebox_override("pressed", style_pressed)
+
+	btn.add_theme_font_size_override("font_size", 22)
+	btn.add_theme_color_override("font_color", Color(1, 0.95, 0.8))
+	btn.add_theme_color_override("font_hover_color", Color(1, 1, 0.9))
+
+	return btn
+
+func hide_pause_screen() -> void:
+	if pause_screen and is_instance_valid(pause_screen):
+		var tween = create_tween()
+		tween.tween_property(pause_screen, "modulate:a", 0.0, 0.15)
+		tween.tween_callback(func():
+			if pause_screen and is_instance_valid(pause_screen):
+				pause_screen.queue_free()
+				pause_screen = null
+		)

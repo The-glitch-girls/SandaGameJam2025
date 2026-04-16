@@ -31,9 +31,24 @@ var sfx_complaint_dict := {
 
 var config_path := "user://audio_settings.cfg"
 
+# Sistema de combos estilo Club Penguin
+var combo_count: int = 0
+var last_collect_time: float = 0.0
+const COMBO_WINDOW: float = 1.5  # Segundos para mantener combo
+const MAX_COMBO_PITCH: float = 1.5  # Pitch maximo
+
+# Aceleracion de musica
+var music_base_pitch: float = 1.0
+var music_speed_tween: Tween = null
+
 func _ready():
 	add_child(sfx_customer_complaint)
 	_cargar_audio_settings() # <-- Cargar valores guardados
+
+func _process(_delta: float) -> void:
+	# Resetear combo si paso mucho tiempo
+	if combo_count > 0 and (Time.get_ticks_msec() / 1000.0 - last_collect_time) > COMBO_WINDOW:
+		combo_count = 0
 
 ### ============================
 ### Funciones existentes (sin cambios)
@@ -45,11 +60,34 @@ func play_click_sfx():
 	else:
 		push_warning("SFXClick no está asignado o no existe en AudioManager")
 		
-func play_collect_ingredient_sfx():	
+func play_collect_ingredient_sfx():
 	if sfx_collect_ingredient:
+		# Sistema de combo
+		var current_time = Time.get_ticks_msec() / 1000.0
+
+		if current_time - last_collect_time < COMBO_WINDOW:
+			combo_count += 1
+		else:
+			combo_count = 1
+
+		last_collect_time = current_time
+
+		# Aumentar pitch segun combo (estilo Club Penguin)
+		var pitch = 1.0 + (combo_count - 1) * 0.08
+		pitch = min(pitch, MAX_COMBO_PITCH)
+		sfx_collect_ingredient.pitch_scale = pitch
+
 		sfx_collect_ingredient.play()
 	else:
 		push_warning("SFXCollectIngredient no está asignado o no existe en AudioManager")
+
+func get_current_combo() -> int:
+	return combo_count
+
+func reset_combo() -> void:
+	combo_count = 0
+	if sfx_collect_ingredient:
+		sfx_collect_ingredient.pitch_scale = 1.0
 		
 func play_correct_recipe_sfx():	
 	if sfx_correct_recipe:
@@ -166,12 +204,36 @@ func stop_crowd_talking_sfx():
 	else:
 		push_warning("SFXCrowdTalking no está asignado o no existe en AudioManager")
 
-func stop_newton_humming_sfx():	
+func stop_newton_humming_sfx():
 	print("STOPPING HUMMING")
 	if sfx_newton_humming and sfx_newton_humming.playing:
 		sfx_newton_humming.stop()
 	else:
 		push_warning("SFXNewtonHumming no está asignado o no existe en AudioManager")
+
+# ============ FUNCIONES DE VELOCIDAD DE MUSICA ============
+
+func set_music_speed(target_pitch: float, duration: float = 0.5) -> void:
+	if not game_music:
+		return
+
+	if music_speed_tween and music_speed_tween.is_running():
+		music_speed_tween.kill()
+
+	music_speed_tween = create_tween()
+	music_speed_tween.tween_property(game_music, "pitch_scale", target_pitch, duration).set_trans(Tween.TRANS_SINE)
+
+func speed_up_music_gradually(factor: float = 0.05) -> void:
+	if not game_music:
+		return
+
+	var new_pitch = game_music.pitch_scale + factor
+	new_pitch = min(new_pitch, 1.4)  # Maximo 40% mas rapido
+	set_music_speed(new_pitch, 0.3)
+
+func reset_music_speed() -> void:
+	set_music_speed(music_base_pitch, 0.5)
+	reset_combo()
 
 ### ============================
 ### NUEVO: Audio con sliders y persistencia
