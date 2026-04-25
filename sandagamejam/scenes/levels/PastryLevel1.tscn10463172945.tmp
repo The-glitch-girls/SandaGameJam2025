@@ -16,13 +16,19 @@ offset_bottom = 648.0
 grow_horizontal = 2
 grow_vertical = 2
 texture = ExtResource("2_aov3q")
+expand_mode = 1
+stretch_mode = 6
 
 [node name="Personajes" type="Node2D" parent="."]
 
 [node name="Barra" type="TextureRect" parent="."]
-offset_top = 572.0
-offset_right = 1152.0
-offset_bottom = 652.0
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_bottom = 200.0
+grow_horizontal = 2
+grow_vertical = 0
 texture = ExtResource("2_ld2p3")
 expand_mode = 1
 

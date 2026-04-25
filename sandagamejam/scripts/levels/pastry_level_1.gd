@@ -77,7 +77,27 @@ func _ready():
 
 	spawn_next_customer()
 	GlobalManager.initialize_recipes("level1")
+	
+	_ajustar_fondo()
 
+func _ajustar_fondo():
+	var vp = get_viewport_rect().size
+	var tex_size = $Fondo.texture.get_size()
+	
+	# Calcular escala tipo "cover" (cubre todo sin deformar)
+	var scale_x = vp.x / tex_size.x
+	var scale_y = vp.y / tex_size.y
+	var escala = max(scale_x, scale_y)
+	
+	# Aplicar escala
+	$Fondo.scale = Vector2(escala, escala)
+	
+	# Centrar en pantalla
+	var scaled_size = tex_size * escala
+	$Fondo.position = Vector2(
+		(vp.x - scaled_size.x) / 2,
+		(vp.y - scaled_size.y) / 2
+	)
 func _exit_tree() -> void:
 	# Limpiar elementos UI (se liberan automáticamente con el nivel)
 	customer_progress_container = null
@@ -849,10 +869,11 @@ func create_clickable_ingredient(ingredient_id: String) -> Area2D:
 
 	area.z_index = 10
 
-	# Conectar click
 	area.input_event.connect(_on_table_ingredient_clicked.bind(area, ingredient_id))
 
 	return area
+
+
 
 func _on_table_ingredient_clicked(_viewport: Node, event: InputEvent, _shape_idx: int, area: Area2D, ing_id: String) -> void:
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
@@ -942,7 +963,6 @@ func stop_ingredients_minigame() -> void:
 # ============ EFECTOS VISUALES ============
 
 func create_collect_effect(pos: Vector2) -> void:
-	# Flash blanco
 	var flash = ColorRect.new()
 	flash.color = Color(1, 1, 1, 0.6)
 	flash.size = Vector2(80, 80)
@@ -953,11 +973,16 @@ func create_collect_effect(pos: Vector2) -> void:
 	var flash_tween = create_tween()
 	flash_tween.tween_property(flash, "modulate:a", 0.0, 0.15)
 	flash_tween.tween_callback(flash.queue_free)
+	
+	# ← AGREGA ESTO: seguridad por si el tween falla
+	get_tree().create_timer(0.5).timeout.connect(func():
+		if flash and is_instance_valid(flash):
+			flash.queue_free()
+	)
 
-	# Partículas simples
 	for i in range(5):
 		var particle = ColorRect.new()
-		particle.color = Color(1, 0.9, 0.3)  # Amarillo dorado
+		particle.color = Color(1, 0.9, 0.3)
 		particle.size = Vector2(8, 8)
 		particle.position = pos - Vector2(4, 4)
 		particle.z_index = 99
@@ -973,6 +998,12 @@ func create_collect_effect(pos: Vector2) -> void:
 		p_tween.tween_property(particle, "modulate:a", 0.0, 0.3)
 		p_tween.set_parallel(false)
 		p_tween.tween_callback(particle.queue_free)
+		
+		# ← seguridad también para partículas
+		get_tree().create_timer(0.5).timeout.connect(func():
+			if particle and is_instance_valid(particle):
+				particle.queue_free()
+		)
 
 func create_wrong_ingredient_effect(pos: Vector2) -> void:
 	# Flash rojo para ingrediente incorrecto

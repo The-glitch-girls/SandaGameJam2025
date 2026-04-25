@@ -409,28 +409,25 @@ func _on_btn_back_pressed() -> void:
 func _on_btn_continue_pressed() -> void:
 	AudioManager.play_click_sfx()
 
-	# Preparar datos de la receta
 	emit_signal("ingredients_minigame_started")
 	minigame_started = true
 	var recipe_selected = GlobalManager.current_level_recipes[GlobalManager.selected_recipe_idx]
+	
 	GlobalManager.selected_recipe_data = recipe_selected
+	print("✅ selected_recipe_data asignado en overlay: ", GlobalManager.selected_recipe_data)
 
 	var array_size = GlobalManager.ingredientes_array_size
 	var ingredients = recipe_selected["ingredients"]
 	var ingr_loop = generate_arr(ingredients, array_size)
 
-	# Ocultar containers del overlay
 	hide_recipe_container()
 	hide_menu_container()
 
-	# Emitir señal para que el nivel muestre los ingredientes
 	emit_signal("recipe_selected", recipe_selected, ingr_loop)
 
-	# Mostrar el menu de ingredientes (receta pequeña)
 	var instance = show_ingredients_textrect()
 	fill_ingredients_textrect(instance)
 
-	# Mostrar boton de preparar (deshabilitado hasta que seleccione ingredientes)
 	btn_prepare.visible = true
 	btn_prepare.disabled = true
 	
