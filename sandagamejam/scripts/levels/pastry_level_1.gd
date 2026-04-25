@@ -34,15 +34,6 @@ var progress_total_duration: float = 0.0
 var customer_progress_container: HBoxContainer = null
 var customer_dots: Array = []
 
-# Tutorial
-var tutorial_shown: Dictionary = {
-	"listen": false,
-	"select_recipe": false,
-	"collect": false,
-	"prepare": false
-}
-var current_tooltip: Control = null
-
 # Ambiente
 var ambient_container: Node2D = null
 var ambient_lights: Array = []
@@ -179,18 +170,34 @@ func show_customer_reaction(success: bool):
 	# Esperar menos tiempo para crear overlap
 	await get_tree().create_timer(0.8).timeout
 
-	# Animación de salida: alejar hacia el fondo
+	# Animación de salida: caminar hacia la derecha
 	if current_customer and is_instance_valid(current_customer):
 		var exiting_customer = current_customer
+		var viewport_size = get_viewport().get_visible_rect().size
+
+		# Posición de salida (fuera de pantalla a la derecha)
+		var exit_pos = Vector2(viewport_size.x + 200, exiting_customer.position.y)
+
+		# Voltear el sprite para que mire hacia la derecha
+		if exiting_customer.has_node("Sprite2D"):
+			var sprite = exiting_customer.get_node("Sprite2D")
+			sprite.flip_h = true
+
 		var tween := create_tween()
-		tween.tween_property(exiting_customer, "scale", exiting_customer.scale * 0.5, 0.8)
-		tween.parallel().tween_property(exiting_customer, "modulate:a", 0.0, 0.8)
+		tween.set_parallel(true)
+		# Caminar hacia la derecha
+		tween.tween_property(exiting_customer, "position", exit_pos, 1.5).set_trans(Tween.TRANS_LINEAR)
+		# Reducir escala ligeramente (se aleja)
+		tween.tween_property(exiting_customer, "scale", exiting_customer.scale * 0.8, 1.5)
+		tween.set_parallel(false)
 		tween.tween_callback(func():
 			if exiting_customer and is_instance_valid(exiting_customer):
 				exiting_customer.queue_free()
 		)
 
 		# Overlap: empezar a traer el siguiente cliente mientras el actual sale
+		# Esperar un poco antes de traer al siguiente para que haya mejor overlap
+		await get_tree().create_timer(0.3).timeout
 		current_customer = null
 		AudioManager.stop_customer_sfx()
 		spawn_next_customer()
@@ -200,9 +207,6 @@ func _on_customer_seated(cust: Node2D):
 	var btn_listen : TextureButton = cust.get_node("BtnListen")
 	btn_listen.show()
 	#print("DEBUG > _on_customer_seated El cliente llegó y se sentó: ", cust.character_id, "\n", cust.mood_id, "\n", cust.texts, "\n", cust.language)
-
-	# Tutorial deshabilitado temporalmente
-	# show_listen_tutorial()
 	
 func _on_listen_customer_pressed():
 	UILayerManager.show_message(current_customer.texts[current_customer.language])
@@ -285,95 +289,6 @@ func print_combos(combos):
 	for comb in combos:
 		print("Personaje: ", comb["character_id"], "\nEstado: ", comb["mood_id"], "\nTexto: ", comb["texts"][GlobalManager.game_language])
 		print("......")
-
-# ============ TUTORIAL ============
-
-func show_tutorial_tooltip(key: String, text: String, pos: Vector2, duration: float = 3.0) -> void:
-	# Solo mostrar si no se ha mostrado antes
-	if tutorial_shown.get(key, false):
-		return
-	tutorial_shown[key] = true
-
-	# Limpiar tooltip anterior
-	if current_tooltip and is_instance_valid(current_tooltip):
-		current_tooltip.queue_free()
-
-	# Crear panel de tooltip
-	var tooltip = PanelContainer.new()
-	tooltip.z_index = 200
-	tooltip.position = pos
-
-	var style = StyleBoxFlat.new()
-	style.bg_color = Color(0.15, 0.12, 0.1, 0.95)
-	style.corner_radius_top_left = 12
-	style.corner_radius_top_right = 12
-	style.corner_radius_bottom_left = 12
-	style.corner_radius_bottom_right = 12
-	style.border_width_top = 3
-	style.border_width_bottom = 3
-	style.border_width_left = 3
-	style.border_width_right = 3
-	style.border_color = Color(1, 0.85, 0.4)  # Dorado
-	style.content_margin_top = 12
-	style.content_margin_bottom = 12
-	style.content_margin_left = 16
-	style.content_margin_right = 16
-	tooltip.add_theme_stylebox_override("panel", style)
-
-	var label = Label.new()
-	label.text = text
-	label.add_theme_font_size_override("font_size", 18)
-	label.add_theme_color_override("font_color", Color(1, 0.95, 0.8))
-	tooltip.add_child(label)
-
-	var ui_layer = $UILayer
-	if ui_layer:
-		ui_layer.add_child(tooltip)
-	else:
-		add_child(tooltip)
-
-	current_tooltip = tooltip
-
-	# Animacion de entrada
-	tooltip.modulate.a = 0
-	tooltip.scale = Vector2(0.8, 0.8)
-	var tween = create_tween()
-	tween.set_parallel(true)
-	tween.tween_property(tooltip, "modulate:a", 1.0, 0.3)
-	tween.tween_property(tooltip, "scale", Vector2(1.0, 1.0), 0.3).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
-
-	# Animacion de salida despues de la duracion
-	tween.set_parallel(false)
-	tween.tween_interval(duration)
-	tween.tween_property(tooltip, "modulate:a", 0.0, 0.5)
-	tween.tween_callback(func():
-		if tooltip and is_instance_valid(tooltip):
-			tooltip.queue_free()
-	)
-
-func hide_current_tooltip() -> void:
-	if current_tooltip and is_instance_valid(current_tooltip):
-		var tween = create_tween()
-		tween.tween_property(current_tooltip, "modulate:a", 0.0, 0.2)
-		tween.tween_callback(func():
-			if current_tooltip and is_instance_valid(current_tooltip):
-				current_tooltip.queue_free()
-				current_tooltip = null
-		)
-
-func show_listen_tutorial() -> void:
-	if current_customer_index == 1:  # Solo primer cliente
-		var viewport_size = get_viewport().get_visible_rect().size
-		show_tutorial_tooltip("listen", "Escucha al cliente para saber que quiere", Vector2(viewport_size.x * 0.3, 200), 4.0)
-
-func show_collect_tutorial() -> void:
-	if current_customer_index == 1:  # Solo primer cliente
-		show_tutorial_tooltip("collect", "Haz clic en los ingredientes para recolectarlos", Vector2(150, 380), 4.0)
-
-func show_prepare_tutorial() -> void:
-	if current_customer_index == 1 and not tutorial_shown["prepare"]:  # Solo primer cliente
-		var viewport_size = get_viewport().get_visible_rect().size
-		show_tutorial_tooltip("prepare", "Presiona PREPARAR cuando tengas todos", Vector2(viewport_size.x / 2 - 150, viewport_size.y - 150), 3.0)
 
 # ============ AMBIENTE CON VIDA ============
 
@@ -577,7 +492,6 @@ func start_ingredients_on_table(recipe_data: Dictionary, ingr_loop: Array) -> vo
 
 	# Mostrar panel de receta
 	create_recipe_display(recipe_data)
-	# show_collect_tutorial()
 
 func create_minigame_ui() -> void:
 	var viewport_size = get_viewport().get_visible_rect().size

@@ -69,7 +69,7 @@ func _ready():
 	lives = GameController.LIVES
 	max_lives = GameController.MAX_LIVES
 	time_left = GameController.TIME_LEFT
-	ingredientes_array_size = GameController.ING_ARR_SIZE 
+	ingredientes_array_size = GameController.ING_ARR_SIZE
 	cargar_audio_settings()
 
 func start_game():
