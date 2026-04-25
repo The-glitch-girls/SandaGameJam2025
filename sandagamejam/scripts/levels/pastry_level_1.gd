@@ -488,12 +488,14 @@ func stop_ambient_effects() -> void:
 func start_ingredients_on_table(recipe_data: Dictionary, ingr_loop: Array) -> void:
 	print("🍳 Iniciando ingredientes en la mesa: ", ingr_loop)
 	print("🍳 Cantidad de ingredientes: ", ingr_loop.size())
+	print("📋 Recipe data completo: ", recipe_data)
 
 	# Guardar total de ingredientes necesarios para la receta
 	total_ingredients_needed = recipe_data["ingredients"].size()
 
 	# Guardar ingredientes correctos de la receta para validación
 	current_recipe_ingredients = recipe_data.get("ingredients", [])
+	print("✅ Ingredientes CORRECTOS de la receta: ", current_recipe_ingredients)
 
 	# Crear contenedor si no existe
 	if not ingredients_container:
@@ -573,8 +575,8 @@ func start_ingredients_on_table(recipe_data: Dictionary, ingr_loop: Array) -> vo
 	# Activar minijuego
 	minigame_active = true
 
-	# Deshabilitado temporalmente para debug
-	# create_recipe_display(recipe_data)
+	# Mostrar panel de receta
+	create_recipe_display(recipe_data)
 	# show_collect_tutorial()
 
 func create_minigame_ui() -> void:
@@ -691,12 +693,21 @@ func clear_minigame_ui() -> void:
 # ============ RECETA VISIBLE CON CHECKMARKS ============
 
 func create_recipe_display(recipe_data: Dictionary) -> void:
+	print("📋 create_recipe_display llamado")
+	print("📋 recipe_data: ", recipe_data)
+
 	clear_recipe_display()
 
-	current_recipe_ingredients = recipe_data.get("ingredients", [])
+	# current_recipe_ingredients ya está asignado en start_ingredients_on_table
 	recipe_ingredient_labels.clear()
 
+	print("📋 Ingredientes a mostrar en panel: ", current_recipe_ingredients)
+	if current_recipe_ingredients.size() == 0:
+		print("⚠️ NO HAY INGREDIENTES EN LA RECETA - Panel no se creará")
+		return
+
 	var viewport_size = get_viewport().get_visible_rect().size
+	print("📋 Viewport size: ", viewport_size)
 
 	recipe_display = PanelContainer.new()
 	# Posicionar en la esquina superior derecha, debajo del contador
@@ -736,6 +747,22 @@ func create_recipe_display(recipe_data: Dictionary) -> void:
 		var hbox = HBoxContainer.new()
 		hbox.add_theme_constant_override("separation", 8)
 
+		# Imagen del ingrediente
+		var img_container = Control.new()
+		img_container.custom_minimum_size = Vector2(40, 40)
+
+		var path = "res://assets/pastry/ingredients/%s.png" % ing_id
+		if ResourceLoader.exists(path):
+			var tex = load(path)
+			var texture_rect = TextureRect.new()
+			texture_rect.texture = tex
+			texture_rect.custom_minimum_size = Vector2(40, 40)
+			texture_rect.expand_mode = TextureRect.EXPAND_FIT_WIDTH_PROPORTIONAL
+			texture_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+			img_container.add_child(texture_rect)
+
+		hbox.add_child(img_container)
+
 		# Icono de estado (checkmark o cuadrado vacio)
 		var status = Label.new()
 		status.text = "[ ]"
@@ -744,29 +771,29 @@ func create_recipe_display(recipe_data: Dictionary) -> void:
 		status.custom_minimum_size = Vector2(30, 0)
 		hbox.add_child(status)
 
-		# Nombre del ingrediente
-		var name_label = Label.new()
-		name_label.text = get_ingredient_name(ing_id)
-		name_label.add_theme_font_size_override("font_size", 16)
-		name_label.add_theme_color_override("font_color", Color(0.9, 0.85, 0.75))
-		hbox.add_child(name_label)
-
 		vbox.add_child(hbox)
 
-		# Guardar referencia al label de estado
+		# Guardar referencia al label de estado y la imagen
 		recipe_ingredient_labels.append({
 			"id": ing_id,
 			"status_label": status,
-			"name_label": name_label,
+			"img_container": img_container,
+			"hbox": hbox,
 			"collected": false
 		})
 
 	# Añadir al UILayer del nivel
 	var ui_layer_rd = $UILayer
 	if ui_layer_rd:
+		print("📋 Agregando panel a UILayer")
 		ui_layer_rd.add_child(recipe_display)
 	else:
+		print("⚠️ UILayer no encontrado, agregando al nivel directamente")
 		add_child(recipe_display)
+
+	print("✅ Panel de receta creado en posición: ", recipe_display.position)
+	print("✅ Panel visible: ", recipe_display.visible)
+	print("✅ Ingredientes en el panel: ", recipe_ingredient_labels.size())
 
 	# Animacion de entrada
 	recipe_display.modulate.a = 0
@@ -782,12 +809,26 @@ func update_recipe_checkmark(ing_id: String) -> void:
 		if item["id"] == ing_id and not item["collected"]:
 			item["collected"] = true
 			var status_label = item["status_label"] as Label
-			var name_label = item["name_label"] as Label
+			var img_container = item["img_container"] as Control
+			var hbox = item["hbox"] as HBoxContainer
 
 			# Marcar como recolectado con checkmark verde
-			status_label.text = "[v]"
+			status_label.text = "[✓]"
 			status_label.add_theme_color_override("font_color", Color(0.2, 0.9, 0.3))
-			name_label.add_theme_color_override("font_color", Color(0.2, 0.9, 0.3))
+
+			# Línea de tachado sobre la imagen
+			var line = Line2D.new()
+			line.default_color = Color(0.2, 0.9, 0.3, 0.9)
+			line.width = 3
+			line.add_point(Vector2(0, 20))
+			line.add_point(Vector2(40, 20))
+			line.z_index = 10
+			img_container.add_child(line)
+
+			# Reducir opacidad de toda la fila
+			if hbox:
+				var opacity_tween = create_tween()
+				opacity_tween.tween_property(hbox, "modulate:a", 0.5, 0.3)
 
 			# Animacion de pulso
 			var tween = create_tween()
@@ -823,7 +864,7 @@ func clear_recipe_display() -> void:
 		recipe_display.queue_free()
 		recipe_display = null
 	recipe_ingredient_labels.clear()
-	current_recipe_ingredients.clear()
+	# NO limpiar current_recipe_ingredients aquí, ya está asignado en start_ingredients_on_table
 
 func get_ingredient_name(ing_id: String) -> String:
 	# Mapeo simple de IDs a nombres
@@ -843,6 +884,41 @@ func get_ingredient_name(ing_id: String) -> String:
 		"ing_207": "Miel*",
 	}
 	return names.get(ing_id, ing_id)
+
+func is_ingredient_valid(ing_id: String) -> bool:
+	# Verificar si el ingrediente está directamente en la receta
+	if current_recipe_ingredients.has(ing_id):
+		return true
+
+	# Diccionario de equivalentes gravitacionales (normal → gravitacional)
+	var gravitational_map = {
+		"ing_002": "ing_202",  # Manzana → Manzana Gravitacional
+		"ing_005": "ing_205",  # Azúcar → Azúcar Gravitacional
+		"ing_007": "ing_207"   # Miel → Miel Gravitacional
+	}
+
+	# Verificar si es un ingrediente gravitacional que corresponde a uno normal de la receta
+	for normal_ing in current_recipe_ingredients:
+		if gravitational_map.has(normal_ing):
+			var gravitational_variant = gravitational_map[normal_ing]
+			if ing_id == gravitational_variant:
+				print("✨ Ingrediente gravitacional válido: ", ing_id, " corresponde a ", normal_ing)
+				return true
+
+	return false
+
+func normalize_ingredient_id(ing_id: String) -> String:
+	# Convertir ingredientes gravitacionales a sus equivalentes normales
+	var reverse_map = {
+		"ing_202": "ing_002",  # Manzana Gravitacional → Manzana
+		"ing_205": "ing_005",  # Azúcar Gravitacional → Azúcar
+		"ing_207": "ing_007"   # Miel Gravitacional → Miel
+	}
+
+	if reverse_map.has(ing_id):
+		return reverse_map[ing_id]
+
+	return ing_id  # Si no es gravitacional, devolver el mismo ID
 
 func create_clickable_ingredient(ingredient_id: String) -> Area2D:
 	var path = "res://assets/pastry/ingredients/%s.png" % ingredient_id
@@ -877,17 +953,22 @@ func create_clickable_ingredient(ingredient_id: String) -> Area2D:
 
 func _on_table_ingredient_clicked(_viewport: Node, event: InputEvent, _shape_idx: int, area: Area2D, ing_id: String) -> void:
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
-		# Verificar si el ingrediente es correcto
-		var is_correct = current_recipe_ingredients.has(ing_id)
+		# Verificar si el ingrediente es correcto (incluyendo equivalentes gravitacionales)
+		var is_correct = is_ingredient_valid(ing_id)
+		print("🔍 Ingrediente clickeado: ", ing_id, " | ¿Es correcto? ", is_correct)
+		print("📝 Lista de correctos: ", current_recipe_ingredients)
 
 		if is_correct:
 			# Ingrediente CORRECTO - Agregar y contar para el total
 			AudioManager.play_collect_ingredient_sfx()
 			create_collect_effect(area.global_position)
-			GlobalManager.collected_ingredients.append(ing_id)
 
-			# Actualizar checkmark en la receta
-			update_recipe_checkmark(ing_id)
+			# Convertir ingrediente gravitacional a su equivalente normal para el conteo
+			var normalized_id = normalize_ingredient_id(ing_id)
+			GlobalManager.collected_ingredients.append(normalized_id)
+
+			# Actualizar checkmark en la receta (tachado + opacidad en el panel)
+			update_recipe_checkmark(normalized_id)
 		else:
 			# Ingrediente INCORRECTO - Solo penalizar, NO agregar
 			AudioManager.play_wrong_recipe_sfx()
@@ -895,7 +976,7 @@ func _on_table_ingredient_clicked(_viewport: Node, event: InputEvent, _shape_idx
 			# Penalización de tiempo (quitar 5 segundos)
 			GlobalManager.apply_penalty(5)
 
-		# Animacion de recoleccion (para ambos casos)
+		# Animacion de recoleccion (para ambos casos - ambos desaparecen)
 		var tween = create_tween()
 		tween.tween_property(area, "scale", Vector2(1.5, 1.5), 0.1)
 		tween.tween_property(area, "modulate:a", 0.0, 0.15)
@@ -1053,62 +1134,24 @@ func create_wrong_ingredient_effect(pos: Vector2) -> void:
 	x_tween.tween_callback(x_label.queue_free)
 
 func show_life_lost_animation(pos: Vector2) -> void:
-	# Crear corazón roto que flota hacia arriba
-	var heart = Label.new()
-	heart.text = "💔"
-	heart.add_theme_font_size_override("font_size", 64)
-	heart.position = pos + Vector2(-32, -80)  # Arriba del cliente
-	heart.z_index = 150
-	add_child(heart)
-
-	# Animación: flota hacia arriba y desaparece
-	var heart_tween = create_tween()
-	heart_tween.set_parallel(true)
-	heart_tween.tween_property(heart, "position:y", heart.position.y - 120, 1.2).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-	heart_tween.tween_property(heart, "modulate:a", 0.0, 1.2).set_delay(0.3)
-	heart_tween.tween_property(heart, "scale", Vector2(1.5, 1.5), 0.3).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
-	heart_tween.set_parallel(false)
-	heart_tween.tween_callback(heart.queue_free)
-
-	# Partículas de corazón roto
-	for i in range(8):
-		var shard = Label.new()
-		shard.text = "💔"
-		shard.add_theme_font_size_override("font_size", 24)
-		shard.add_theme_color_override("font_color", Color(1, 0.3, 0.3, 0.8))
-		shard.position = pos + Vector2(-12, -60)
-		shard.z_index = 149
-		add_child(shard)
-
-		var angle = (TAU / 8) * i + randf_range(-0.3, 0.3)
-		var distance = randf_range(40, 80)
-		var target_pos = shard.position + Vector2(cos(angle), sin(angle)) * distance
-
-		var shard_tween = create_tween()
-		shard_tween.set_parallel(true)
-		shard_tween.tween_property(shard, "position", target_pos, 0.8).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-		shard_tween.tween_property(shard, "rotation", randf_range(-PI, PI), 0.8)
-		shard_tween.tween_property(shard, "modulate:a", 0.0, 0.8).set_delay(0.2)
-		shard_tween.tween_property(shard, "scale", Vector2(0.5, 0.5), 0.8)
-		shard_tween.set_parallel(false)
-		shard_tween.tween_callback(shard.queue_free)
-
-	# Texto "-1 VIDA" flotante
+	# Texto "-1" flotante (simple, sin corazón roto)
 	var text = Label.new()
-	text.text = "-1 VIDA"
-	text.add_theme_font_size_override("font_size", 28)
+	text.text = "-1"
+	text.add_theme_font_size_override("font_size", 48)
 	text.add_theme_color_override("font_color", Color(1, 0.2, 0.2))
 	text.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.8))
 	text.add_theme_constant_override("shadow_offset_x", 3)
 	text.add_theme_constant_override("shadow_offset_y", 3)
-	text.position = pos + Vector2(-60, -40)
+	text.position = pos + Vector2(-24, -60)
 	text.z_index = 151
 	add_child(text)
 
+	# Animación: escala + flota hacia arriba + desaparece
 	var text_tween = create_tween()
 	text_tween.set_parallel(true)
-	text_tween.tween_property(text, "position:y", text.position.y - 80, 1.0).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-	text_tween.tween_property(text, "modulate:a", 0.0, 1.0).set_delay(0.4)
+	text_tween.tween_property(text, "position:y", text.position.y - 100, 1.2).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	text_tween.tween_property(text, "modulate:a", 0.0, 1.2).set_delay(0.5)
+	text_tween.tween_property(text, "scale", Vector2(1.3, 1.3), 0.2).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	text_tween.set_parallel(false)
 	text_tween.tween_callback(text.queue_free)
 
