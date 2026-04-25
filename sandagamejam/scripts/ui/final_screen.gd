@@ -34,13 +34,13 @@ var timer: Timer
 @onready var recipe_win = preload("res://assets/pastry/recipes/recipe_003.png")
 @onready var ranking_label_settings: LabelSettings = preload("res://custom_resources/Ranking.tres")
 
-var add_new_score: bool = false
 var name_entered: bool = false
 var score: int = 100
-var max_name_length: int = 6
-var current_name: Array = []
+var max_name_length: int = 12
+var current_name: String = ""
 var cached_entries: Array = []
 var ranking: Array = []
+var player_position: int = -1
 var menu_labels = GlobalManager.menu_labels[GlobalManager.game_language]
 var settings_instance = preload("res://custom_resources/Ranking.tres").duplicate()
 
@@ -52,38 +52,47 @@ var current_state: GlobalManager.GameState
 
 func _ready():
 	AudioManager.play_end_music()
+
+	# Limpiar labels desde el inicio
+	name_label.text = ""
+	score_container.visible = false
+
 	if GlobalManager.satisfied_customers.size() == 0:
 		score = 0
 	else:
 		score = (round(GlobalManager.time_left) * 10) + (GlobalManager.lives * 100)
-	
+
 	settings_instance.font_size = 50
 	message_label.label_settings = settings_instance
 
 	score_label.text = menu_labels["ranking"]["score"] + " " + str(score)
-	add_new_score = await is_player_in_ranking(score)
-	show_name_label()
+
+	# Esperar a que termine la animación principal antes de mostrar input
+	await get_tree().create_timer(5.0).timeout
+	score_container.visible = true
+	show_name_input()
 	
 func _input(event: InputEvent) -> void:
-	if event is InputEventKey and event.pressed and add_new_score:
-		#a-z y A-Z
-		if (event.unicode >= 65 and event.unicode <=90) or (event.unicode >= 97 and event.unicode <= 122):
+	if event is InputEventKey and event.pressed and not name_entered:
+		# a-z, A-Z, espacio
+		if (event.unicode >= 65 and event.unicode <=90) or (event.unicode >= 97 and event.unicode <= 122) or event.unicode == 32:
 			var char_typed = char(event.unicode).to_upper()
-			if current_name.size() < max_name_length:
-				current_name.append(char_typed)
-				show_name_label()
-		
-		elif event.keycode == KEY_BACKSPACE and current_name.size() > 0:
-				current_name.pop_back()
-				show_name_label()
-			
-		elif event.keycode == KEY_ENTER and current_name.size() > 0 and not name_entered:
+			if current_name.length() < max_name_length:
+				current_name += char_typed
+				update_name_display()
+
+		elif event.keycode == KEY_BACKSPACE and current_name.length() > 0:
+			current_name = current_name.substr(0, current_name.length() - 1)
+			update_name_display()
+
+		elif event.keycode == KEY_ENTER and current_name.length() > 0 and not name_entered:
+			name_entered = true
 			hide_player_score_labels()
 			animate_loading_label()
-			await store_in_talo("".join(current_name), score)
+			await store_in_talo(current_name, score)
 			stop_loading_animation()
-			show_ranking()
-			name_entered = true
+			await show_ranking_with_animation()
+
 	
 # state puede ser: "win", "lose", "timeup"
 func show_final_screen(state: GlobalManager.GameState):
@@ -115,43 +124,47 @@ func show_final_screen(state: GlobalManager.GameState):
 	await get_tree().create_timer(3.5).timeout
 	start_newton_animation(state)
 	
-	await get_tree().create_timer(1.0).timeout
-	_mostrar_ranking_automatico()
+func show_name_input():
+	# Limpiar y resetear el nombre
+	current_name = ""
 
-func _mostrar_ranking_automatico() -> void:
-	animate_loading_label()
-	await load_entries_from_talo()
-	stop_loading_animation()
-	
-	if add_new_score:
-		score_panel.visible = true
-	else:
-		show_ranking()
-		show_buttons()
-	
-func show_name_label():
-	var display = ""
+	# Mostrar texto de instrucción
+	var instruction = menu_labels.get("enter_name", "Ingresa tu nombre:")
+	name_label.text = instruction + "\n\n_"
 
-	if not add_new_score:
-		name_label.text = display
-		# Si no califica para ranking, mostrar botones directamente
-		show_buttons()
-		return
+	# Mostrar botones
+	show_buttons()
 
-	for i in range(max_name_length):
-		if i < current_name.size():
-			display += current_name[i] + ""
-		else:
-			display += "_ "
-	name_label.text =  menu_labels["ranking"]["name"] + "\n" + display
+func update_name_display():
+	# Actualizar el texto con el nombre actual + cursor
+	var instruction = menu_labels.get("enter_name", "Ingresa tu nombre:")
+	name_label.text = instruction + "\n\n" + current_name + "_"
 
 func show_buttons():
 	var label = play_again_btn.get_node("Label")
 	label.text = menu_labels["play_again"]
 	var back_label = back_to_menu_btn.get_node("Label")
 	back_label.text = menu_labels.get("back_to_menu", "Menú principal")
+
+	# Hacer visibles los botones con animación de entrada
 	play_again_btn.visible = true
-	back_to_menu_btn.visible = true 
+	back_to_menu_btn.visible = true
+
+	# Animación de entrada para el botón de "Volver a jugar"
+	play_again_btn.modulate.a = 0
+	play_again_btn.scale = Vector2(0.8, 0.8)
+	var tween_play = create_tween()
+	tween_play.set_parallel(true)
+	tween_play.tween_property(play_again_btn, "modulate:a", 1.0, 0.4)
+	tween_play.tween_property(play_again_btn, "scale", Vector2(1.0, 1.0), 0.4).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+
+	# Animación de entrada para el botón de "Volver al menú" (con delay)
+	back_to_menu_btn.modulate.a = 0
+	back_to_menu_btn.scale = Vector2(0.8, 0.8)
+	var tween_menu = create_tween()
+	tween_menu.set_parallel(true)
+	tween_menu.tween_property(back_to_menu_btn, "modulate:a", 1.0, 0.4).set_delay(0.15)
+	tween_menu.tween_property(back_to_menu_btn, "scale", Vector2(1.0, 1.0), 0.4).set_delay(0.15).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT) 
 	
 
 func animate_loading_label():
@@ -207,22 +220,6 @@ func load_entries_from_talo() -> void:
 	_build_entries()
 
 
-func is_player_in_ranking(score_value: int) -> bool:
-	await load_entries_from_talo()
-	
-	
-	if cached_entries.size() == 0:
-		return true
-		
-	
-	if cached_entries.size() < 10:
-		return true
-
-
-	var last_child_idx = cached_entries.size()
-	var lower_score = cached_entries[last_child_idx - 1].score
-	
-	return score_value > lower_score
 
 func show_ranking():
 	loading_label.visible = false
@@ -234,6 +231,48 @@ func show_ranking():
 		empty_label.label_settings = ranking_label_settings
 		ranking_container.add_child(empty_label)
 	
+	show_buttons()
+
+func show_ranking_with_animation():
+	loading_label.visible = false
+
+	# Obtener todas las entradas y encontrar la posición del jugador
+	cached_entries = Talo.leaderboards.get_cached_entries(leaderboard_internal_name)
+
+	# Encontrar posición del jugador (recién agregado)
+	player_position = -1
+	for i in range(cached_entries.size()):
+		var entry = cached_entries[i]
+		# El jugador es la entrada más reciente con su nombre
+		if entry.player_alias.identifier == current_name and int(entry.score) == score:
+			player_position = i
+			break
+
+	# Si no encontró, usar la última posición (fallback)
+	if player_position == -1:
+		player_position = cached_entries.size() - 1
+
+	# Fase 1: Mostrar top 5 rápidamente
+	_build_top_entries()
+	ranking_container.visible = true
+	ranking_container.modulate.a = 1.0
+
+	# Esperar 1.2 segundos mostrando el top
+	await get_tree().create_timer(1.2).timeout
+
+	# Fase 2: Fade out del top
+	var fade_out = create_tween()
+	fade_out.tween_property(ranking_container, "modulate:a", 0.0, 0.3)
+	await fade_out.finished
+
+	# Fase 3: Cambiar a vista contextual y fade in
+	_build_contextual_entries()
+
+	var fade_in = create_tween()
+	fade_in.tween_property(ranking_container, "modulate:a", 1.0, 0.4)
+	await fade_in.finished
+
+	# Mostrar botones al final
 	show_buttons()
 	
 	
@@ -255,20 +294,59 @@ func _on_btn_back_to_menu_pressed() -> void:
 	
 func _build_entries() -> void:
 	free_container_children()
-	
-	
+
 	cached_entries = Talo.leaderboards.get_cached_entries(leaderboard_internal_name)
-	if cached_entries.size() > 10:
-		cached_entries = cached_entries.slice(0, 10)
-	
+
 	for entry in cached_entries:
 		_create_entry(entry)
+
+func _build_top_entries() -> void:
+	free_container_children()
+
+	# Mostrar solo top 5
+	var top_count = min(5, cached_entries.size())
+	for i in range(top_count):
+		_create_entry(cached_entries[i])
+
+func _build_contextual_entries() -> void:
+	free_container_children()
+
+	if player_position == -1 or cached_entries.size() == 0:
+		return
+
+	# Determinar rango de entradas a mostrar
+	var start_idx = max(0, player_position - 1)
+	var end_idx = min(cached_entries.size() - 1, player_position + 1)
+
+	# Si está en el top 3, mostrar top 5
+	if player_position < 3:
+		end_idx = min(4, cached_entries.size() - 1)
+		start_idx = 0
+
+	# Crear entradas en el rango
+	for i in range(start_idx, end_idx + 1):
+		var is_player = (i == player_position)
+		_create_entry(cached_entries[i], is_player)
 	
-func _create_entry(entry: TaloLeaderboardEntry) -> void:
-	
+func _create_entry(entry: TaloLeaderboardEntry, highlight: bool = false) -> void:
 	var player_label = Label.new()
-	player_label.text = str(entry.position)+". " + entry.player_alias.identifier +" - " + str(int(entry.score))
-	player_label.label_settings = ranking_label_settings
+
+	# Obtener nombre del jugador (puede ser username o identifier)
+	var player_name = entry.player_alias.identifier
+	if player_name == null or player_name == "":
+		player_name = "Jugador"  # Nombre por defecto si está vacío
+
+	player_label.text = str(entry.position) + ". " + player_name + " - " + str(int(entry.score))
+
+	if highlight:
+		# Resaltar la entrada del jugador
+		var highlight_settings = ranking_label_settings.duplicate()
+		highlight_settings.font_color = Color(1, 0.85, 0.2)  # Dorado
+		highlight_settings.font_size = 56
+		player_label.label_settings = highlight_settings
+	else:
+		player_label.label_settings = ranking_label_settings
+
 	ranking_container.add_child(player_label)
 	
 # helpers

@@ -652,10 +652,18 @@ func _on_recipe_selected(recipe_data: Dictionary, ingredients_array: Array) -> v
 			current_level.connect("ingredients_timeout", Callable(self, "_on_level_ingredients_timeout"))
 
 func _on_level_ingredients_timeout() -> void:
-	print("⚠️ TIMEOUT desde NIVEL")
-	# Cuando los ingredientes del nivel terminan
-	emit_signal("ingredients_minigame_timeout")
-	_on_ingredients_minigame_timeout()
+	print("⚠️ TIMEOUT desde NIVEL - Cliente se va sin comida")
+
+	# Detener ingredientes en el nivel
+	if current_level and current_level.has_method("stop_ingredients_minigame"):
+		current_level.stop_ingredients_minigame()
+
+	# Perder vida directamente (sin mostrar a Newton)
+	GlobalManager.lose_life()
+
+	# Hacer que el cliente reaccione enojado y se vaya
+	# La animación de pérdida de vida se mostrará durante la salida del cliente
+	get_tree().call_group("levels", "show_customer_reaction", false)
 
 func _prepare_final(state: GlobalManager.GameState):
 	print("preparing... ", state )
