@@ -31,9 +31,6 @@ func _ready():
 
 		
 func _input(event: InputEvent) -> void:
-	if event is InputEventMouseButton and event.pressed:
-		print("CLICK DETECTADO en: ", get_global_mouse_position())
-		print("btn_salir rect: ", btn_salir.get_global_rect())
 	var mouse_pos = get_global_mouse_position()
 	
 	# Detectar hover

@@ -884,6 +884,9 @@ func _on_prepare_button_pressed() -> void:
 	GlobalManager.recipe_started = true
 	minigame_active = false
 
+	# ← Ocultar tooltip si está visible
+	hide_current_tooltip()
+
 	if prepare_button and is_instance_valid(prepare_button):
 		prepare_button.visible = false
 
@@ -925,41 +928,74 @@ func create_clickable_ingredient(ingredient_id: String) -> Area2D:
 
 	area.z_index = 10
 
-	# Conectar click
 	area.input_event.connect(_on_table_ingredient_clicked.bind(area, ingredient_id))
 
 	return area
 
+
+
 func _on_table_ingredient_clicked(_viewport: Node, event: InputEvent, _shape_idx: int, area: Area2D, ing_id: String) -> void:
-	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+	if not (event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT):
+		return
+	
+	var recipe_ingredients: Array = []
+	if GlobalManager.selected_recipe_data and GlobalManager.selected_recipe_data.has("ingredients"):
+		recipe_ingredients = GlobalManager.selected_recipe_data["ingredients"]
+	
+	var is_correct = _is_ingredient_valid(ing_id, recipe_ingredients)
+	
+	if is_correct:
 		AudioManager.play_collect_ingredient_sfx()
 		GlobalManager.collected_ingredients.append(ing_id)
-
-		# Crear efecto de flash
-		create_collect_effect(area.global_position)
-
-		# Actualizar checkmark en la receta
 		update_recipe_checkmark(ing_id)
-
-		# Animacion de recoleccion
-		var tween = create_tween()
-		tween.tween_property(area, "scale", Vector2(1.5, 1.5), 0.1)
-		tween.tween_property(area, "modulate:a", 0.0, 0.15)
-		tween.tween_callback(area.queue_free)
-
-		# Remover de la lista
-		active_ingredients.erase(area)
-
-		# Actualizar contador
 		update_ingredients_counter()
-
-		# Habilitar boton de preparar si hay ingredientes seleccionados
+		active_ingredients.erase(area)
+		create_collect_effect(area.global_position)
+		
+		if is_instance_valid(area):
+			var already_collected = GlobalManager.collected_ingredients.count(ing_id) > 1
+			var target_color = Color(0.4, 1.0, 0.4, 0.4) if (current_customer_index == 1 and already_collected) else Color(0.4, 1.0, 0.4, 0.8)
+			
+			var tween = create_tween()
+			tween.tween_property(area, "modulate", target_color, 0.1)
+			tween.tween_property(area, "modulate:a", 0.0, 0.3)
+			tween.tween_callback(func():
+				if is_instance_valid(area):
+					area.queue_free()
+			)
+		
 		if GlobalManager.collected_ingredients.size() > 0:
 			enable_prepare_button()
-
-		# Tutorial: mostrar tooltip para preparar cuando tenga suficientes ingredientes
-		if GlobalManager.collected_ingredients.size() >= total_ingredients_needed:
+		if current_customer_index == 1 and GlobalManager.collected_ingredients.size() >= total_ingredients_needed:
 			show_prepare_tutorial()
+	else:
+		AudioManager.play_wrong_recipe_sfx()
+		
+		if is_instance_valid(area):
+			area.input_pickable = false
+			var original_pos = area.position
+			
+			var tween = create_tween()
+			tween.tween_property(area, "modulate", Color(1.0, 0.2, 0.2, 1.0), 0.05)
+			tween.tween_property(area, "position", original_pos + Vector2(8, 0), 0.05)
+			tween.tween_property(area, "position", original_pos - Vector2(8, 0), 0.05)
+			tween.tween_property(area, "position", original_pos + Vector2(6, 0), 0.05)
+			tween.tween_property(area, "position", original_pos, 0.05)
+			tween.tween_property(area, "modulate", Color(1.0, 0.4, 0.4, 0.5), 0.1)
+
+func _is_ingredient_valid(ing_id: String, recipe_ingredients: Array) -> bool:
+	# Verificar si es ingrediente directo de la receta
+	if recipe_ingredients.has(ing_id):
+		return true
+	
+	# Verificar si es equivalente gravitacional de algún ingrediente de la receta
+	var gravitational_equivalents = GameController.gravitational_equivalents
+	for recipe_ing in recipe_ingredients:
+		if gravitational_equivalents.has(recipe_ing):
+			if gravitational_equivalents[recipe_ing].has(ing_id):
+				return true
+	
+	return false
 
 func clear_ingredients() -> void:
 	print("🧹 clear_ingredients llamado - tweens activos: ", active_tweens.size())

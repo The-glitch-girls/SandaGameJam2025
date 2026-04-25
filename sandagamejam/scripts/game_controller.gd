@@ -51,12 +51,15 @@ func get_screen_width() -> float:
 func _ready():
 	newton_layer.visible = false
 	newton_ready_sprite.visible = false
+	
+	feedback_message.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	outcome_message.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	feedback_message.autowrap_mode = TextServer.AUTOWRAP_WORD
+	outcome_message.autowrap_mode = TextServer.AUTOWRAP_WORD
+	
 	GlobalManager.connect("time_up", Callable(self, "_on_time_up"))
 	GlobalManager.connect("game_over", Callable(self, "_on_game_over"))
-	GlobalManager.connect("win",Callable(self,"_on_win"))
-	
-	_ajustar_newton_layer()
-	get_viewport().size_changed.connect(_ajustar_newton_layer)
+	GlobalManager.connect("win", Callable(self, "_on_win"))
 
 
 func _ajustar_newton_layer():
@@ -85,6 +88,12 @@ func show_newton_layer():
 	newton_ready_sprite.visible = false
 # Cargar Main Menu: Jugar, Opciones, Creditos
 func load_main_menu():
+	DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED)
+	DisplayServer.window_set_size(Vector2i(1152, 648))
+	DisplayServer.window_set_position(
+		DisplayServer.screen_get_position() + 
+		(DisplayServer.screen_get_size() - Vector2i(1152, 648)) / 2
+	)
 	# Limpiar cualquier escena previa
 	free_children(current_scene_container)
 	
@@ -99,7 +108,9 @@ func load_main_menu():
 		newton_layer.visible = false
 		pass
 	
-# Cargar cualquier nivel
+# Cargar cualquier nivel menos el juego
+# En GameController.gd — reemplaza load_level completo
+
 func load_level(level_path: String) -> void:
 	if current_level and is_instance_valid(current_level):
 		current_level.queue_free()
@@ -115,24 +126,38 @@ func load_level(level_path: String) -> void:
 	
 	if current_level.has_signal("level_cleared"):
 		current_level.connect("level_cleared", Callable(self, "_on_level_cleared"))
+
+func load_game_level() -> void:
+	var level_path = "res://scenes/levels/PastryLevel1.tscn"
 	
-	if level_path == "res://scenes/levels/PastryLevel1.tscn":
-		var fade = ColorRect.new()
-		fade.color = Color(0,0,0,1)
-		fade.set_anchors_preset(Control.PRESET_FULL_RECT)
-		fade.z_index = 999
-		overlay_layer.add_child(fade)
-		
+	if current_level and is_instance_valid(current_level):
+		current_level.queue_free()
+		current_level = null
+	
+	DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_FULLSCREEN)
+	
+	var scene = load(level_path)
+	current_level = scene.instantiate()
+	current_scene_container.add_child(current_level)
+	
+	if current_level.has_signal("level_cleared"):
+		current_level.connect("level_cleared", Callable(self, "_on_level_cleared"))
+	
+	for i in range(8):
 		await get_tree().process_frame
-		await get_tree().process_frame
-		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_FULLSCREEN)
-		await get_tree().process_frame
-		
-		var tween = create_tween()
-		tween.tween_property(fade,"modulate:a",0.0,0.5)
-		tween.tween_callback(fade.queue_free)
-	else:
-		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED)
+	
+	var fade = ColorRect.new()
+	fade.color = Color(0, 0, 0, 1)
+	fade.set_anchors_preset(Control.PRESET_FULL_RECT)
+	fade.z_index = 999
+	fade.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	overlay_layer.add_child(fade)
+	
+	var tween = create_tween()
+	tween.tween_property(fade, "modulate:a", 0.0, 0.6)\
+		.set_trans(Tween.TRANS_SINE)\
+		.set_ease(Tween.EASE_IN_OUT)
+	tween.tween_callback(fade.queue_free)
 
 func show_minigame(path: String):
 	var new_scale = 0.15
@@ -435,31 +460,45 @@ func is_gravitational(collected: Array, recipe: Array) -> bool:
 
 # Función común para mostrar resultados y aplicar consecuencias
 func apply_recipe_result(result: Dictionary, show_sprite: bool = false, delayed: bool = false) -> void:
-	#print("result..", result)
 	var msg: String = result["feedback"]
 	var response_type: int = result["type"]
 	var sprite: Sprite2D = result.get("sprite", null)
-
-	# Mostrar feedback
+	
+	# Mostrar fondo de Newton
+	var test_rect = newton_layer.get_node_or_null("TestTextureRect")
+	if test_rect:
+		test_rect.visible = true
+	
+	# Mover cliente a la izquierda para que no lo tape Newton
+	var level = get_tree().get_first_node_in_group("levels")
+	if level and level.current_customer and is_instance_valid(level.current_customer):
+		var tween_customer = create_tween()
+		tween_customer.tween_property(
+			level.current_customer,
+			"position:x",
+			level.current_customer.position.x - 150,
+			0.3
+		).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	
 	newton_moods_sprite.visible = false
 	feedback_message.visible = true
-	feedback_message.text = msg
-	outcome_message.text = result["outcome"]
-
+	
+	# Texto alineado a la derecha
+	_set_message_text(feedback_message, msg)
+	_set_message_text(outcome_message, result["outcome"])
+	
 	if show_sprite and sprite:
 		sprite.visible = true
 		sprite.scale = Vector2(0.2, 0.2)
-
 		# Animación "pop"
 		var tween := create_tween()
 		tween.tween_property(sprite, "scale", Vector2(1, 1), 0.3) \
 			.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
-
-	# Si es con delay → esperar antes de aplicar consecuencias
+	
 	if delayed:
 		var timer := get_tree().create_timer(1.5)
 		await timer.timeout
-
+		
 	# Aplicar consecuencias
 	match response_type:
 		GlobalManager.ResponseType.RECIPE_WRONG:
@@ -474,10 +513,24 @@ func apply_recipe_result(result: Dictionary, show_sprite: bool = false, delayed:
 			GlobalManager.gain_life()
 		_:
 			print(">> response_type no coincide con ninguna opción:", response_type)
-
 	# Ocultar sprite al final si lo hubo
 	if show_sprite and sprite:
 		sprite.visible = false
+		
+	feedback_message.bbcode_enabled = true
+	feedback_message.text = msg  
+	outcome_message.bbcode_enabled = true  
+	outcome_message.text = result["outcome"] 
+	
+	feedback_message.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	outcome_message.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+
+# ← Agregar esta función helper en GameController.gd
+func _set_message_text(label: RichTextLabel, text: String) -> void:
+	label.clear()
+	label.push_paragraph(HORIZONTAL_ALIGNMENT_RIGHT)
+	label.add_text(text)
+	label.pop()
 
 # Controles
 
@@ -519,13 +572,29 @@ func _on_minigame_hidden():
 		self.current_minigame = null
 	
 	_cleanup_minigames()
-	
+
 func _on_continue_btn_pressed() -> void:
 	feedback_message.visible = false
 	outcome_message.visible = false
 	hide_continue_btn()
 	
-	# Restaurar Newton
+	# Ocultar fondo de Newton
+	var test_rect = newton_layer.get_node_or_null("TestTextureRect")
+	if test_rect:
+		test_rect.visible = false
+	
+	# Regresar cliente a su posición
+	var level = get_tree().get_first_node_in_group("levels")
+	if level and level.current_customer and is_instance_valid(level.current_customer):
+		var tween_customer = create_tween()
+		tween_customer.tween_property(
+			level.current_customer,
+			"position:x",
+			level.current_customer.position.x + 150,
+			0.3
+		).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+		
+	# Restaurar Newton	
 	reset_newton_ready()
 	# Ocultar minijuegos
 	finish_minigame()
@@ -534,7 +603,7 @@ func _on_continue_btn_pressed() -> void:
 	
 	if pending_final_state != null:
 		_go_to_final_screen()
-
+		
 func _cleanup_minigames():
 	# Liberar lo que esté dentro del overlay
 	for child in minigame_overlay.get_children():
@@ -606,28 +675,40 @@ func _go_to_final_screen():
 func load_final_screen(state: GlobalManager.GameState):
 	# 1 Ocultar Newton, no eliminar el minijuego aun
 	newton_layer.visible = false
+	
+	var fade = ColorRect.new()
+	fade.color = Color(0, 0, 0, 0)
+	fade.set_anchors_preset(Control.PRESET_FULL_RECT)
+	fade.z_index = 999
+	fade.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	overlay_layer.add_child(fade)
+	
+	var tween_in = create_tween()
+	tween_in.tween_property(fade, "modulate:a", 1.0, 0.3)
+	await tween_in.finished
+	
+	# Volver a windowed mientras está negro
+	DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED)
+	
+	for i in range(5):
+		await get_tree().process_frame
+
 	#if current_minigame and is_instance_valid(current_minigame):
 	#	current_minigame.visible = false
 	
 	# 2️ Limpiar pantalla final previa
 	if final_screen and is_instance_valid(final_screen):
 		final_screen.queue_free()
-		
+	
 	# 3️ Instanciar pantalla final
 	final_screen = load("res://scenes/ui/FinalScreen.tscn").instantiate()
 	overlay_layer.add_child(final_screen)
 	
-	# 4 Fade in
-	final_screen.modulate = Color(1,1,1,0)
-	var tween = create_tween()
-	tween.tween_property(final_screen, "modulate:a", 1.0, 0.5).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	var tween_out = create_tween()
+	tween_out.tween_property(fade, "modulate:a", 0.0, 0.4).set_trans(Tween.TRANS_SINE)
+	tween_out.tween_callback(fade.queue_free)
 	
-	# 5 Mostrar la pantalla según el estado ("win", "time_up", "game_over")
 	final_screen.show_final_screen(state)
-	
-	# 6 Limpiar minijuegos y resetear Newton **después** de fade-in
-	tween.finished.connect(func():
-		print("TWEEN FINISHED")
 		#_cleanup_minigames()
 		#hide_continue_btn()
 
@@ -635,8 +716,6 @@ func load_final_screen(state: GlobalManager.GameState):
 		#reset_newton_ready()
 		# Ocultar minijuegos
 		#finish_minigame()
-
-	)
 
 # ============ PANTALLA DE PAUSA ============
 
