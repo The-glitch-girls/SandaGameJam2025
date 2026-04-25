@@ -51,12 +51,7 @@ func get_screen_width() -> float:
 func _ready():
 	newton_layer.visible = false
 	newton_ready_sprite.visible = false
-	
-	feedback_message.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	outcome_message.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	feedback_message.autowrap_mode = TextServer.AUTOWRAP_WORD
-	outcome_message.autowrap_mode = TextServer.AUTOWRAP_WORD
-	
+
 	GlobalManager.connect("time_up", Callable(self, "_on_time_up"))
 	GlobalManager.connect("game_over", Callable(self, "_on_game_over"))
 	GlobalManager.connect("win", Callable(self, "_on_win"))
@@ -307,9 +302,6 @@ func make_newton_cook():
 		AudioManager.stop_whisking_sfx()
 		# Obtener los resultados
 		var result = check_recipe()
-		# Mostrar mensajes inmediatos
-		feedback_message.text = result["feedback"]
-		outcome_message.text = result["outcome"]
 		await show_recipe_result_with_delay(result)
 		show_netown_feedback()
 	)
@@ -336,27 +328,11 @@ func create_cooking_particle(pos: Vector2) -> void:
 	tween.tween_callback(particle.queue_free)
 
 func show_netown_feedback():
-	var continue_btn_label = continue_button.get_node("Label")
-	outcome_message.visible = true
-	newton_ready_sprite.visible = false
-	newton_moods_sprite.visible = true
-	
-	var test_rect = newton_layer.get_node_or_null("TestTextureRect")
-	if test_rect:
-		test_rect.visible = true
-	# Cambiar sprite según resultado
+	# Reproducir sonido según resultado
 	if is_success:
 		AudioManager.play_correct_recipe_sfx()
-		newton_moods_sprite.texture = preload("res://assets/sprites/newtown/newton_happy.png")
 	else:
 		AudioManager.play_wrong_recipe_sfx()
-		newton_moods_sprite.texture = preload("res://assets/sprites/newtown/newton_sad.png")
-	
-	continue_btn_label.text = GlobalManager.btn_continuar_label
-	continue_button.visible = true
-
-func hide_continue_btn():
-	continue_button.visible = false
 
 func check_recipe() -> Dictionary:
 	var selected_recipe_ingredients = GlobalManager.selected_recipe_data["ingredients"]
@@ -411,14 +387,9 @@ func show_recipe_result_with_delay(result: Dictionary) -> void:
 	show_netown_feedback()
 
 func reset_newton_ready() -> void:
-	var test_rect = newton_layer.get_node_or_null("TestTextureRect")
-	if test_rect:
-		test_rect.visible = false
-	
-	newton_moods_sprite.texture = preload("res://assets/sprites/newtown/newton_cooking.png")
 	newton_ready_sprite.visible = false
 	newton_moods_sprite.visible = false
-	
+
 	var tween = create_tween()
 	tween.tween_property(newton_ready_sprite, "position", newton_original_pos, 0.5)
 	tween.tween_property(newton_ready_sprite, "scale", newton_original_scale, 0.5)
@@ -463,42 +434,11 @@ func apply_recipe_result(result: Dictionary, show_sprite: bool = false, delayed:
 	var msg: String = result["feedback"]
 	var response_type: int = result["type"]
 	var sprite: Sprite2D = result.get("sprite", null)
-	
-	# Mostrar fondo de Newton
-	var test_rect = newton_layer.get_node_or_null("TestTextureRect")
-	if test_rect:
-		test_rect.visible = true
-	
-	# Mover cliente a la izquierda para que no lo tape Newton
-	var level = get_tree().get_first_node_in_group("levels")
-	if level and level.current_customer and is_instance_valid(level.current_customer):
-		var tween_customer = create_tween()
-		tween_customer.tween_property(
-			level.current_customer,
-			"position:x",
-			level.current_customer.position.x - 150,
-			0.3
-		).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
-	
-	newton_moods_sprite.visible = false
-	feedback_message.visible = true
-	
-	# Texto alineado a la derecha
-	_set_message_text(feedback_message, msg)
-	_set_message_text(outcome_message, result["outcome"])
-	
-	if show_sprite and sprite:
-		sprite.visible = true
-		sprite.scale = Vector2(0.2, 0.2)
-		# Animación "pop"
-		var tween := create_tween()
-		tween.tween_property(sprite, "scale", Vector2(1, 1), 0.3) \
-			.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
-	
+
 	if delayed:
 		var timer := get_tree().create_timer(1.5)
 		await timer.timeout
-		
+
 	# Aplicar consecuencias
 	match response_type:
 		GlobalManager.ResponseType.RECIPE_WRONG:
@@ -513,24 +453,152 @@ func apply_recipe_result(result: Dictionary, show_sprite: bool = false, delayed:
 			GlobalManager.gain_life()
 		_:
 			print(">> response_type no coincide con ninguna opción:", response_type)
-	# Ocultar sprite al final si lo hubo
-	if show_sprite and sprite:
-		sprite.visible = false
-		
-	feedback_message.bbcode_enabled = true
-	feedback_message.text = msg  
-	outcome_message.bbcode_enabled = true  
-	outcome_message.text = result["outcome"] 
-	
-	feedback_message.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	outcome_message.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 
-# ← Agregar esta función helper en GameController.gd
-func _set_message_text(label: RichTextLabel, text: String) -> void:
-	label.clear()
-	label.push_paragraph(HORIZONTAL_ALIGNMENT_RIGHT)
-	label.add_text(text)
-	label.pop()
+	# Esperar un frame para que las señales de game over/time up se procesen
+	await get_tree().process_frame
+
+	# Si el juego terminó, no mostrar modal y ir directo a pantalla final
+	if pending_final_state != null:
+		# Limpiar minijuegos
+		reset_newton_ready()
+		finish_minigame()
+		_go_to_final_screen()
+		return
+
+	# Si el juego continúa, mostrar modal con el resultado
+	create_result_modal(result, sprite, show_sprite)
+
+func create_result_modal(result: Dictionary, sprite: Sprite2D, show_sprite: bool) -> void:
+	# Ocultar Newton antes de mostrar el modal
+	newton_ready_sprite.visible = false
+	newton_moods_sprite.visible = false
+
+	var modal = Control.new()
+	modal.name = "ResultModal"
+	modal.set_anchors_preset(Control.PRESET_FULL_RECT)
+	modal.z_index = 250
+
+	# Fondo semi-transparente
+	var bg = ColorRect.new()
+	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
+	bg.color = Color(0.1, 0.08, 0.05, 0.85)
+	modal.add_child(bg)
+
+	# Panel central
+	var panel = PanelContainer.new()
+	panel.custom_minimum_size = Vector2(600, 450)
+	panel.set_anchors_preset(Control.PRESET_CENTER)
+	panel.position = Vector2(-300, -225)
+
+	var style = StyleBoxFlat.new()
+	style.bg_color = Color(0.95, 0.93, 0.88, 0.98)
+	style.corner_radius_top_left = 20
+	style.corner_radius_top_right = 20
+	style.corner_radius_bottom_left = 20
+	style.corner_radius_bottom_right = 20
+	style.border_width_top = 4
+	style.border_width_bottom = 4
+	style.border_width_left = 4
+	style.border_width_right = 4
+	style.border_color = Color(0.85, 0.65, 0.4)
+	style.content_margin_top = 30
+	style.content_margin_bottom = 30
+	style.content_margin_left = 40
+	style.content_margin_right = 40
+	panel.add_theme_stylebox_override("panel", style)
+	modal.add_child(panel)
+
+	# Contenedor vertical
+	var vbox = VBoxContainer.new()
+	vbox.add_theme_constant_override("separation", 25)
+	vbox.alignment = BoxContainer.ALIGNMENT_BEGIN
+	panel.add_child(vbox)
+
+	# Cargar fuente Macondo
+	var macondo_font = load("res://assets/fonts/Macondo/Macondo-Regular.ttf")
+
+	# Sprite de la receta arriba y centrado
+	if show_sprite and sprite:
+		var sprite_container = CenterContainer.new()
+		sprite_container.custom_minimum_size = Vector2(0, 180)
+		var sprite_copy = Sprite2D.new()
+		sprite_copy.texture = sprite.texture
+		sprite_copy.scale = Vector2(0.5, 0.5)
+		sprite_copy.position = Vector2(280, 90)  # Centrado en el contenedor
+		sprite_container.add_child(sprite_copy)
+		vbox.add_child(sprite_container)
+
+		# Animación pop
+		sprite_copy.scale = Vector2(0.2, 0.2)
+		var tween = create_tween()
+		tween.tween_property(sprite_copy, "scale", Vector2(0.5, 0.5), 0.3) \
+			.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+
+	# Mensaje de feedback
+	var feedback_label = RichTextLabel.new()
+	feedback_label.bbcode_enabled = true
+	feedback_label.fit_content = true
+	feedback_label.scroll_active = false
+	feedback_label.custom_minimum_size = Vector2(520, 0)
+	feedback_label.add_theme_font_override("normal_font", macondo_font)
+	feedback_label.add_theme_font_size_override("normal_font_size", 26)
+	feedback_label.add_theme_color_override("default_color", Color(0.2, 0.15, 0.1))
+	feedback_label.text = "[center]" + result["feedback"] + "[/center]"
+	vbox.add_child(feedback_label)
+
+	# Espaciador pequeño
+	var spacer = Control.new()
+	spacer.custom_minimum_size = Vector2(0, 5)
+	vbox.add_child(spacer)
+
+	# Mensaje de outcome
+	var outcome_label = RichTextLabel.new()
+	outcome_label.bbcode_enabled = true
+	outcome_label.fit_content = true
+	outcome_label.scroll_active = false
+	outcome_label.custom_minimum_size = Vector2(520, 0)
+	outcome_label.add_theme_font_override("normal_font", macondo_font)
+	outcome_label.add_theme_font_size_override("normal_font_size", 32)
+	outcome_label.text = "[center]" + result["outcome"] + "[/center]"
+	vbox.add_child(outcome_label)
+
+	# Espaciador flexible para empujar el botón hacia abajo
+	var spacer_flex = Control.new()
+	spacer_flex.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	vbox.add_child(spacer_flex)
+
+	# Botón continuar
+	var btn_continue = create_pause_button(GlobalManager.btn_continuar_label)
+	btn_continue.pressed.connect(func():
+		# Cerrar modal con animación
+		var close_tween = create_tween()
+		close_tween.tween_property(panel, "scale", Vector2(0.8, 0.8), 0.15)
+		close_tween.parallel().tween_property(panel, "modulate:a", 0.0, 0.15)
+		close_tween.tween_callback(func():
+			modal.queue_free()
+
+			# Restaurar Newton y ocultar minijuegos
+			reset_newton_ready()
+			finish_minigame()
+
+			# Avisar al nivel que muestre reacción del cliente
+			get_tree().call_group("levels", "show_customer_reaction", is_success)
+
+			if pending_final_state != null:
+				_go_to_final_screen()
+		)
+	)
+	vbox.add_child(btn_continue)
+
+	overlay_layer.add_child(modal)
+
+	# Animación de entrada
+	panel.scale = Vector2(0.8, 0.8)
+	panel.modulate.a = 0
+	var tween = create_tween()
+	tween.set_parallel(true)
+	tween.tween_property(panel, "scale", Vector2(1, 1), 0.3).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	tween.tween_property(panel, "modulate:a", 1.0, 0.2)
 
 # Controles
 
@@ -548,12 +616,6 @@ func reset_game():
 	
 	if UILayerManager.ui_layer_instance:
 		UILayerManager.ui_layer_instance.reset_timer_colors()
-	
-	# Reset mensajes globales
-	if feedback_message:
-		feedback_message.text = ""
-	if outcome_message:
-		outcome_message.text = ""
 	
 # Senales
 func _on_ingredients_minigame_timeout():
@@ -574,35 +636,8 @@ func _on_minigame_hidden():
 	_cleanup_minigames()
 
 func _on_continue_btn_pressed() -> void:
-	feedback_message.visible = false
-	outcome_message.visible = false
-	hide_continue_btn()
-	
-	# Ocultar fondo de Newton
-	var test_rect = newton_layer.get_node_or_null("TestTextureRect")
-	if test_rect:
-		test_rect.visible = false
-	
-	# Regresar cliente a su posición
-	var level = get_tree().get_first_node_in_group("levels")
-	if level and level.current_customer and is_instance_valid(level.current_customer):
-		var tween_customer = create_tween()
-		tween_customer.tween_property(
-			level.current_customer,
-			"position:x",
-			level.current_customer.position.x + 150,
-			0.3
-		).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
-		
-	# Restaurar Newton	
-	reset_newton_ready()
-	# Ocultar minijuegos
-	finish_minigame()
-	# Avisar al nivel que muestre reacción del cliente
-	get_tree().call_group("levels", "show_customer_reaction", is_success)
-	
-	if pending_final_state != null:
-		_go_to_final_screen()
+	# Esta función ya no se usa, el modal maneja el botón continuar
+	pass
 		
 func _cleanup_minigames():
 	# Liberar lo que esté dentro del overlay
