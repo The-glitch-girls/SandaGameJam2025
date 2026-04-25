@@ -27,5 +27,7 @@ func safe_load_texture(path: String) -> Texture2D:
 		return load(path)
 	else:
 		push_warning("⚠️ Texture not found: " + path)
-		# Retorna un placeholder o null según prefieras
-		return preload("res://assets/ui/missing_texture.png")
+		var fallback_path = "res://assets/ui/missing_texture.png"
+		if ResourceLoader.exists(fallback_path, "Texture2D"):
+			return load(fallback_path)
+		return null

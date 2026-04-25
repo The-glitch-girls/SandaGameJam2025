@@ -408,6 +408,8 @@ func _on_btn_back_pressed() -> void:
 
 func _on_btn_continue_pressed() -> void:
 	AudioManager.play_click_sfx()
+	btn_prepare.visible = false
+	btn_prepare.disabled = true
 
 	# Preparar datos de la receta
 	emit_signal("ingredients_minigame_started")

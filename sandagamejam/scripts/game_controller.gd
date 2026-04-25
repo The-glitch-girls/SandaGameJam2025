@@ -20,7 +20,6 @@ signal ingredients_minigame_finished
 var final_screen: Node = null
 
 const IS_TESTING = false
-const SCREEN_WIDTH = 1152.0
 const SECONDS_TO_LOSE = 30
 const SECONDS_TO_LOSE_NOT_PREPARED = 42
 const SECONDS_TO_GAIN = 15
@@ -46,12 +45,40 @@ var gravitational_equivalents = {
 	"ing_007": ["ing_207"]   # Honey → Sticky Fall Honey
 }
 
+func get_screen_width() -> float:
+	return get_viewport().get_visible_rect().size.x
+
 func _ready():
 	newton_layer.visible = false
 	newton_ready_sprite.visible = false
 	GlobalManager.connect("time_up", Callable(self, "_on_time_up"))
 	GlobalManager.connect("game_over", Callable(self, "_on_game_over"))
-	GlobalManager.connect("win", Callable(self, "_on_win"))
+	GlobalManager.connect("win",Callable(self,"_on_win"))
+	
+	_ajustar_newton_layer()
+	get_viewport().size_changed.connect(_ajustar_newton_layer)
+
+
+func _ajustar_newton_layer():
+	var vp = get_viewport().get_visible_rect().size
+	var test_rect = $NewtonLayer/TestTextureRect
+
+	var panel_width = 580.0
+	
+	test_rect.anchor_left   = 1.0
+	test_rect.anchor_right  = 1.0
+	test_rect.anchor_top    = 0.0
+	test_rect.anchor_bottom = 1.0
+	test_rect.offset_left   = -panel_width
+	test_rect.offset_right  = 0.0
+	test_rect.offset_top    = 0.0
+	test_rect.offset_bottom = 0.0
+	test_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+	
+	var newton_x = vp.x - (panel_width * 0.5)  
+	newton_original_pos = Vector2(newton_x, vp.y * 0.65)
+	newton_ready_sprite.position = newton_original_pos
+	newton_moods_sprite.position = newton_original_pos
 
 func show_newton_layer():
 	newton_layer.visible = true
@@ -86,9 +113,26 @@ func load_level(level_path: String) -> void:
 	current_level = scene.instantiate()
 	current_scene_container.add_child(current_level)
 	
-	# conectar el final del nivel
 	if current_level.has_signal("level_cleared"):
 		current_level.connect("level_cleared", Callable(self, "_on_level_cleared"))
+	
+	if level_path == "res://scenes/levels/PastryLevel1.tscn":
+		var fade = ColorRect.new()
+		fade.color = Color(0,0,0,1)
+		fade.set_anchors_preset(Control.PRESET_FULL_RECT)
+		fade.z_index = 999
+		overlay_layer.add_child(fade)
+		
+		await get_tree().process_frame
+		await get_tree().process_frame
+		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_FULLSCREEN)
+		await get_tree().process_frame
+		
+		var tween = create_tween()
+		tween.tween_property(fade,"modulate:a",0.0,0.5)
+		tween.tween_callback(fade.queue_free)
+	else:
+		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED)
 
 func show_minigame(path: String):
 	var new_scale = 0.15
@@ -128,15 +172,14 @@ func free_children(parent: Node):
 
 # Slide Minigame Overlay
 func slide_minigame_overlay(path: String):
-	const TARGET_X = SCREEN_WIDTH - 700
-	
+	var screen_width = get_screen_width()
+	var target_x = screen_width - 700
 	var tween = create_tween()
 	
 	var minigame_instance = load(path).instantiate()
 	minigame_overlay.add_child(minigame_instance)
-	minigame_instance.scale = Vector2(1,1)
+	minigame_instance.scale = Vector2(1, 1)
 	minigame_instance.z_index = 50
-	
 
 	if minigame_instance.has_signal("ingredients_minigame_started"):
 		minigame_instance.connect("ingredients_minigame_started", Callable(self, "_on_overlay_minigame_started"))
@@ -148,27 +191,26 @@ func slide_minigame_overlay(path: String):
 		minigame_instance.connect("recipe_selected", Callable(self, "_on_recipe_selected"))
 
 	self.current_minigame = minigame_instance
-	
+
 	# Conectar la señal con el nivel actual
 	if current_level and current_level.has_method("_on_ingredients_minigame_started"):
 		minigame_instance.ingredients_minigame_started.connect(
 			Callable(current_level, "_on_ingredients_minigame_started")
 		)
-	
-	# Posición inicial: fuera de la pantalla (derecha)
-	minigame_instance.position = Vector2(SCREEN_WIDTH, 0)
-	# Posición final: borde izquierdo del Node2D en la mitad de la pantalla
-	var target_pos = Vector2(TARGET_X, 0)
-	# Tween para entrada del overlay
-	tween.tween_property(minigame_instance, "position", target_pos, 0.5).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
 
+	# Posición inicial: fuera de la pantalla (derecha)
+	minigame_instance.position = Vector2(screen_width, 0)
+	# Posición final: borde izquierdo del Node2D en la mitad de la pantalla
+	var target_pos = Vector2(target_x, 0)
+		# Tween para entrada del overlay
+	tween.tween_property(minigame_instance, "position", target_pos, 0.5).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
 
 # Slide Level scene
 func slide_current_level(direction: String = "left", duration: float = 0.5):
 	var tween = create_tween()
-
+	var screen_width = get_screen_width()  # ← dinámico
 	var start_scene_pos = current_scene_container.position
-	var offset = Vector2(SCREEN_WIDTH/4, 0)
+	var offset = Vector2(screen_width / 4, 0)  # ← ya no usa SCREEN_WIDTH
 	var target_scene_pos
 	if direction == "left":
 		target_scene_pos = start_scene_pos - offset
@@ -274,6 +316,9 @@ func show_netown_feedback():
 	newton_ready_sprite.visible = false
 	newton_moods_sprite.visible = true
 	
+	var test_rect = newton_layer.get_node_or_null("TestTextureRect")
+	if test_rect:
+		test_rect.visible = true
 	# Cambiar sprite según resultado
 	if is_success:
 		AudioManager.play_correct_recipe_sfx()
@@ -341,7 +386,10 @@ func show_recipe_result_with_delay(result: Dictionary) -> void:
 	show_netown_feedback()
 
 func reset_newton_ready() -> void:
-	# Restaurar Newton
+	var test_rect = newton_layer.get_node_or_null("TestTextureRect")
+	if test_rect:
+		test_rect.visible = false
+	
 	newton_moods_sprite.texture = preload("res://assets/sprites/newtown/newton_cooking.png")
 	newton_ready_sprite.visible = false
 	newton_moods_sprite.visible = false
