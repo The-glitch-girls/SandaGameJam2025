@@ -104,7 +104,6 @@ func show_final_screen(state: GlobalManager.GameState):
 			newton.texture = newton_win
 			message_label.text = menu_labels["final_screen"]["win"]
 			AudioManager.play_win_sfx()
-			# Iniciar confeti y celebracion
 			start_confetti_celebration()
 		GlobalManager.GameState.GAMEOVER:
 			bg.texture = bg_fail
@@ -113,10 +112,22 @@ func show_final_screen(state: GlobalManager.GameState):
 			AudioManager.play_game_over_sfx()
 
 	anim.play("final_sequence")
-
-	# Iniciar animacion de Newton despues de que entre
 	await get_tree().create_timer(3.5).timeout
 	start_newton_animation(state)
+	
+	await get_tree().create_timer(1.0).timeout
+	_mostrar_ranking_automatico()
+
+func _mostrar_ranking_automatico() -> void:
+	animate_loading_label()
+	await load_entries_from_talo()
+	stop_loading_animation()
+	
+	if add_new_score:
+		score_panel.visible = true
+	else:
+		show_ranking()
+		show_buttons()
 	
 func show_name_label():
 	var display = ""
@@ -216,6 +227,13 @@ func is_player_in_ranking(score_value: int) -> bool:
 func show_ranking():
 	loading_label.visible = false
 	ranking_container.visible = true
+
+	if cached_entries.size() == 0:
+		var empty_label = Label.new()
+		empty_label.text = "¡Sé el primero en el ranking!"
+		empty_label.label_settings = ranking_label_settings
+		ranking_container.add_child(empty_label)
+	
 	show_buttons()
 	
 	
@@ -389,4 +407,3 @@ func create_tear_effect() -> void:
 	await get_tree().create_timer(6.0).timeout
 	if tear_timer and is_instance_valid(tear_timer):
 		tear_timer.queue_free()
-

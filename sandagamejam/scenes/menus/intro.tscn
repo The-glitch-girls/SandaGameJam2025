@@ -1,11 +1,11 @@
 [gd_scene load_steps=7 format=3 uid="uid://ebvprw6pexo2"]
 
 [ext_resource type="Script" uid="uid://cd2svseh483m6" path="res://scripts/intro.gd" id="1_1a7bk"]
-[ext_resource type="Texture2D" uid="uid://2n1ol4pwkj0p" path="res://assets/backgrounds/level1.png" id="2_56pe6"]
-[ext_resource type="Texture2D" uid="uid://dsenofsp1vxvc" path="res://assets/ui/intro_text.png" id="3_klb7a"]
-[ext_resource type="Texture2D" uid="uid://4o3c3306e13x" path="res://assets/sprites/newtown/newton_ready.png" id="3_uh46f"]
+[ext_resource type="Texture2D" uid="uid://kqlowxj4gq8j" path="res://assets/backgrounds/level1.png" id="2_56pe6"]
+[ext_resource type="Texture2D" uid="uid://d2vd13b8bsy5f" path="res://assets/ui/intro_text.png" id="3_klb7a"]
+[ext_resource type="Texture2D" uid="uid://ddj82n8hd8au5" path="res://assets/sprites/newtown/newton_ready.png" id="3_uh46f"]
 [ext_resource type="LabelSettings" uid="uid://d2d5fqqackxp5" path="res://custom_resources/TutorialLabels.tres" id="5_56pe6"]
-[ext_resource type="Texture2D" uid="uid://kmijifif5ra1" path="res://assets/ui/playbtn.png" id="5_uh46f"]
+[ext_resource type="Texture2D" uid="uid://brbk6m7cowa2g" path="res://assets/ui/playbtn.png" id="5_uh46f"]
 
 [node name="Intro" type="Node2D"]
 script = ExtResource("1_1a7bk")

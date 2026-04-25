@@ -90,19 +90,39 @@ func _on_btn_start_pressed():
 	if current_index < texts.size():
 		_show_text(texts[current_index])
 	else:
-		# Tercer clic → iniciar juego
-		var level_1_path = "res://scenes/levels/PastryLevel1.tscn"
 		GlobalManager.start_game()
-		GameController.load_level(level_1_path)
-		GameController.show_newton_layer()
+		await _fade_and_start()
+
+func _on_omit_intro_pressed():
+	AudioManager.play_click_sfx()
+	GlobalManager.start_game()
+	await _fade_and_start()
+
+func _fade_and_start() -> void:
+	btn_start.disabled = true
+	btn_omit_intro.disabled = true
+	
+	var fade = ColorRect.new()
+	fade.color = Color(0, 0, 0, 0)
+	fade.z_index = 999
+	fade.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	
+	var canvas = CanvasLayer.new()
+	canvas.layer = 100
+	add_child(canvas)
+	canvas.add_child(fade)
+	
+	var vp_size = get_viewport().get_visible_rect().size
+	fade.size = vp_size
+	fade.position = Vector2.ZERO
+	
+	var tween = create_tween()
+	tween.tween_property(fade, "modulate:a", 1.0, 0.4).set_trans(Tween.TRANS_SINE)
+	await tween.finished
+	
+	GameController.load_game_level()
+	GameController.show_newton_layer()
 
 func _on_btn_back_pressed():
 	AudioManager.play_click_sfx()
 	get_tree().change_scene_to_file("res://scenes/menus/MainMenu.tscn")
-
-func _on_omit_intro_pressed():
-	AudioManager.play_click_sfx()
-	var level_1_path = "res://scenes/levels/PastryLevel1.tscn"
-	GlobalManager.start_game()
-	GameController.load_level(level_1_path)
-	GameController.show_newton_layer()

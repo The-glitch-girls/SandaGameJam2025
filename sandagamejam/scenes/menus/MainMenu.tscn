@@ -1,13 +1,13 @@
 [gd_scene load_steps=10 format=3 uid="uid://cpif4nlr27xeh"]
 
 [ext_resource type="Script" uid="uid://dillk2kgfjndt" path="res://scripts/main_scene.gd" id="1_3mqji"]
-[ext_resource type="Texture2D" uid="uid://772576ou1gfa" path="res://assets/backgrounds/main_menu.png" id="2_krskw"]
-[ext_resource type="Texture2D" uid="uid://bc01500fwn7t0" path="res://assets/ui/btn1.png" id="2_uxrcv"]
-[ext_resource type="Texture2D" uid="uid://c3nyorqts65i7" path="res://assets/ui/btn2.png" id="3_rf2cd"]
-[ext_resource type="Texture2D" uid="uid://c0fwdq8hq43ru" path="res://assets/ui/btn3.png" id="4_a814b"]
+[ext_resource type="Texture2D" uid="uid://b0rp7xk7rn4ey" path="res://assets/backgrounds/main_menu.png" id="2_krskw"]
+[ext_resource type="Texture2D" uid="uid://dv3m2s5yu2wj1" path="res://assets/ui/btn1.png" id="2_uxrcv"]
+[ext_resource type="Texture2D" uid="uid://dlpi0ttk3qulp" path="res://assets/ui/btn2.png" id="3_rf2cd"]
+[ext_resource type="Texture2D" uid="uid://bkw3ep3alm1cp" path="res://assets/ui/btn3.png" id="4_a814b"]
 [ext_resource type="LabelSettings" uid="uid://b2h5bls5s7rsg" path="res://custom_resources/MainMenuButtonLabels.tres" id="5_rf2cd"]
-[ext_resource type="FontFile" uid="uid://ch5rglkjpbnk2" path="res://assets/fonts/Macondo/Macondo-Regular.ttf" id="6_a814b"]
-[ext_resource type="Texture2D" uid="uid://b810rbfrnlq87" path="res://assets/ui/close-btn.png" id="7_41ciy"]
+[ext_resource type="FontFile" uid="uid://bw65xw15ao1r3" path="res://assets/fonts/Macondo/Macondo-Regular.ttf" id="6_a814b"]
+[ext_resource type="Texture2D" uid="uid://cos3kv04d2lko" path="res://assets/ui/close-btn.png" id="7_41ciy"]
 
 [sub_resource type="LabelSettings" id="LabelSettings_5crlr"]
 font = ExtResource("6_a814b")
@@ -47,6 +47,7 @@ polygon = PackedVector2Array(3, 79, 23, 164, 340, 93, 320, 5)
 [node name="TextureRect" type="TextureRect" parent="Jugar/CollisionPolygon2D"]
 offset_right = 40.0
 offset_bottom = 40.0
+mouse_filter = 2
 texture = ExtResource("2_uxrcv")
 
 [node name="Label" type="Label" parent="Jugar/CollisionPolygon2D"]
@@ -76,6 +77,7 @@ polygon = PackedVector2Array(12, 2, 17, 89, 341, 71, 335, -17)
 offset_right = 40.0
 offset_bottom = 40.0
 rotation = -0.139626
+mouse_filter = 2
 texture = ExtResource("3_rf2cd")
 
 [node name="Label" type="Label" parent="Opciones/CollisionPolygon2D"]
@@ -105,6 +107,7 @@ polygon = PackedVector2Array(3.34016, 23.7664, 7.80443, 113.014, 333.538, 95.509
 [node name="TextureRect" type="TextureRect" parent="Creditos/CollisionPolygon2D"]
 offset_right = 40.0
 offset_bottom = 40.0
+mouse_filter = 2
 texture = ExtResource("4_a814b")
 
 [node name="Label" type="Label" parent="Creditos/CollisionPolygon2D"]

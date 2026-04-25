@@ -1,14 +1,14 @@
 [gd_scene load_steps=14 format=3 uid="uid://bw2cu7s6406ip"]
 
 [ext_resource type="Script" uid="uid://dday64lgpu1ot" path="res://scripts/ui/final_screen.gd" id="1_gh2yv"]
-[ext_resource type="Texture2D" uid="uid://y3oji4h74je" path="res://assets/backgrounds/bad_score_bg.png" id="2_7raak"]
-[ext_resource type="Texture2D" uid="uid://bc01500fwn7t0" path="res://assets/ui/btn1.png" id="3_7raak"]
-[ext_resource type="Texture2D" uid="uid://j5x08ntmqrit" path="res://assets/pastry/recipes/recipe_003.png" id="4_gh2yv"]
-[ext_resource type="Texture2D" uid="uid://l81w5kaye73g" path="res://assets/sprites/newtown/newton_sad.png" id="6_nsh0p"]
-[ext_resource type="Texture2D" uid="uid://jamwyueec32p" path="res://assets/ui/interact-btn.png" id="7_3v14m"]
+[ext_resource type="Texture2D" uid="uid://io7kkwk0x2o8" path="res://assets/backgrounds/bad_score_bg.png" id="2_7raak"]
+[ext_resource type="Texture2D" uid="uid://dv3m2s5yu2wj1" path="res://assets/ui/btn1.png" id="3_7raak"]
+[ext_resource type="Texture2D" uid="uid://duyo5bn5qbfi5" path="res://assets/pastry/recipes/recipe_003.png" id="4_gh2yv"]
+[ext_resource type="Texture2D" uid="uid://d08pseo53fxmw" path="res://assets/sprites/newtown/newton_sad.png" id="6_nsh0p"]
+[ext_resource type="Texture2D" uid="uid://b8grgd7fhx8tm" path="res://assets/ui/interact-btn.png" id="7_3v14m"]
 [ext_resource type="LabelSettings" uid="uid://i5q50xw1j3v2" path="res://custom_resources/Ranking.tres" id="7_u5ho7"]
-[ext_resource type="Texture2D" uid="uid://bpv7ib6u2578q" path="res://assets/ui/interact-btn-pressed.png" id="8_nsh0p"]
-[ext_resource type="Texture2D" uid="uid://nefnaqulxs8j" path="res://assets/ui/interact-btn-disabled.png" id="9_l1772"]
+[ext_resource type="Texture2D" uid="uid://btnxosfk6ubgs" path="res://assets/ui/interact-btn-pressed.png" id="8_nsh0p"]
+[ext_resource type="Texture2D" uid="uid://wx05g052vlmx" path="res://assets/ui/interact-btn-disabled.png" id="9_l1772"]
 [ext_resource type="LabelSettings" uid="uid://jdv1bfj4iff7" path="res://custom_resources/InteractionButtonLabels.tres" id="10_kmylr"]
 
 [sub_resource type="Animation" id="Animation_gh2yv"]
@@ -350,7 +350,6 @@ texture = ExtResource("6_nsh0p")
 flip_h = true
 
 [node name="ScorePanel" type="Control" parent="."]
-layout_mode = 3
 anchors_preset = 0
 offset_right = 40.0
 offset_bottom = 40.0
@@ -394,7 +393,7 @@ label_settings = ExtResource("7_u5ho7")
 
 [node name="RankingContainer" type="VBoxContainer" parent="."]
 visible = false
-layout_mode = 2
+layout_mode = 0
 offset_left = 383.0
 offset_top = 96.0
 offset_right = 977.0
@@ -403,7 +402,7 @@ offset_bottom = 476.0
 [node name="BtnPlayAgain" type="TextureButton" parent="."]
 visible = false
 z_index = 3
-layout_mode = 2
+layout_mode = 0
 offset_left = 461.0
 offset_top = 502.0
 offset_right = 708.0
@@ -433,7 +432,7 @@ horizontal_alignment = 1
 [node name="BtnBackToMenu" type="TextureButton" parent="."]
 visible = false
 z_index = 3
-layout_mode = 2
+layout_mode = 0
 offset_left = 461.0
 offset_top = 590.0
 offset_right = 708.0
