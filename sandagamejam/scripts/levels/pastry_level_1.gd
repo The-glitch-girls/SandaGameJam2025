@@ -20,7 +20,6 @@ var original_viewport_size: Vector2
 var active_ingredients: Array = []
 var active_tweens: Array = []
 var ingredients_container: Node2D = null
-var prepare_button: TextureButton = null
 var minigame_active: bool = false
 
 # UI del minijuego
@@ -151,6 +150,8 @@ func show_customer_reaction(success: bool):
 			create_celebration_effect(current_customer.global_position)
 		else:
 			current_customer.react_angry()
+			# Mostrar animación de pérdida de vida durante la salida del cliente
+			show_life_lost_animation(current_customer.global_position)
 
 	# Indicador de progreso deshabilitado temporalmente
 	# update_customer_dot(current_customer_index - 1, success)
@@ -471,6 +472,9 @@ func start_ingredients_on_table(recipe_data: Dictionary, ingr_loop: Array) -> vo
 	# Guardar total de ingredientes necesarios para la receta
 	total_ingredients_needed = recipe_data["ingredients"].size()
 
+	# Guardar ingredientes correctos de la receta para validación
+	current_recipe_ingredients = recipe_data.get("ingredients", [])
+
 	# Crear contenedor si no existe
 	if not ingredients_container:
 		ingredients_container = Node2D.new()
@@ -537,9 +541,6 @@ func start_ingredients_on_table(recipe_data: Dictionary, ingr_loop: Array) -> vo
 				print("⚠️ NIVEL: Último ingrediente terminó, emitiendo timeout")
 				minigame_active = false
 				clear_minigame_ui()
-				if prepare_button and is_instance_valid(prepare_button):
-					prepare_button.queue_free()
-					prepare_button = null
 				emit_signal("ingredients_timeout")
 			)
 
@@ -549,9 +550,8 @@ func start_ingredients_on_table(recipe_data: Dictionary, ingr_loop: Array) -> vo
 	var total_duration = duration + (spawn_interval * (ingr_loop.size() - 1))
 	start_progress_bar_timer(total_duration)
 
-	# Crear botón de preparar
+	# Activar minijuego
 	minigame_active = true
-	create_prepare_button()
 
 	# Deshabilitado temporalmente para debug
 	# create_recipe_display(recipe_data)
@@ -649,6 +649,14 @@ func _process(_delta: float) -> void:
 		var progress = 1.0 - (elapsed / progress_total_duration)
 		progress = clamp(progress, 0.0, 1.0)
 		update_progress_bar(progress)
+
+		# Si el tiempo se acabó y no se ha completado la receta, emitir timeout
+		if progress <= 0.0 and GlobalManager.collected_ingredients.size() < total_ingredients_needed:
+			print("⚠️ NIVEL: Tiempo acabado, emitiendo timeout desde _process")
+			minigame_active = false
+			clear_ingredients()
+			clear_minigame_ui()
+			emit_signal("ingredients_timeout")
 
 func clear_minigame_ui() -> void:
 	progress_total_duration = 0.0  # Detener actualización de barra
@@ -816,65 +824,6 @@ func get_ingredient_name(ing_id: String) -> String:
 	}
 	return names.get(ing_id, ing_id)
 
-func create_prepare_button() -> void:
-	if prepare_button and is_instance_valid(prepare_button):
-		prepare_button.queue_free()
-
-	prepare_button = TextureButton.new()
-	prepare_button.texture_normal = load("res://assets/ui/interact-btn.png")
-	prepare_button.texture_pressed = load("res://assets/ui/interact-btn-pressed.png")
-	prepare_button.texture_disabled = load("res://assets/ui/interact-btn-disabled.png")
-	prepare_button.disabled = true  # Deshabilitado hasta seleccionar ingredientes
-
-	# Añadir label al botón
-	var label = Label.new()
-	label.text = GlobalManager.btn_cook_recipe_label
-	label.add_theme_font_size_override("font_size", 20)
-	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	label.anchor_left = 0
-	label.anchor_right = 1
-	label.anchor_top = 0
-	label.anchor_bottom = 1
-	label.name = "Label"
-	prepare_button.add_child(label)
-
-	# Posicionar en la parte inferior central
-	var viewport_size = get_viewport().get_visible_rect().size
-	prepare_button.position = Vector2(viewport_size.x / 2 - 125, viewport_size.y - 90)
-	prepare_button.scale = Vector2(0.8, 0.8)
-
-	# Añadir al UILayer del nivel
-	var ui_layer = $UILayer
-	if ui_layer:
-		ui_layer.add_child(prepare_button)
-	else:
-		add_child(prepare_button)
-
-	prepare_button.pressed.connect(_on_prepare_button_pressed)
-
-func _on_prepare_button_pressed() -> void:
-	if not minigame_active:
-		return
-
-	AudioManager.play_click_sfx()
-	GlobalManager.recipe_started = true
-	minigame_active = false
-
-	# Limpiar ingredientes, UI y botón
-	clear_ingredients()
-	clear_minigame_ui()
-	if prepare_button and is_instance_valid(prepare_button):
-		prepare_button.queue_free()
-		prepare_button = null
-
-	# Hacer que Newton cocine
-	GameController.make_newton_cook()
-
-func enable_prepare_button() -> void:
-	if prepare_button and is_instance_valid(prepare_button):
-		prepare_button.disabled = false
-
 func create_clickable_ingredient(ingredient_id: String) -> Area2D:
 	var path = "res://assets/pastry/ingredients/%s.png" % ingredient_id
 	if not ResourceLoader.exists(path):
@@ -907,16 +856,25 @@ func create_clickable_ingredient(ingredient_id: String) -> Area2D:
 
 func _on_table_ingredient_clicked(_viewport: Node, event: InputEvent, _shape_idx: int, area: Area2D, ing_id: String) -> void:
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
-		AudioManager.play_collect_ingredient_sfx()
-		GlobalManager.collected_ingredients.append(ing_id)
+		# Verificar si el ingrediente es correcto
+		var is_correct = current_recipe_ingredients.has(ing_id)
 
-		# Crear efecto de flash
-		create_collect_effect(area.global_position)
+		if is_correct:
+			# Ingrediente CORRECTO - Agregar y contar para el total
+			AudioManager.play_collect_ingredient_sfx()
+			create_collect_effect(area.global_position)
+			GlobalManager.collected_ingredients.append(ing_id)
 
-		# Actualizar checkmark en la receta
-		update_recipe_checkmark(ing_id)
+			# Actualizar checkmark en la receta
+			update_recipe_checkmark(ing_id)
+		else:
+			# Ingrediente INCORRECTO - Solo penalizar, NO agregar
+			AudioManager.play_wrong_recipe_sfx()
+			create_wrong_ingredient_effect(area.global_position)
+			# Penalización de tiempo (quitar 5 segundos)
+			GlobalManager.apply_penalty(5)
 
-		# Animacion de recoleccion
+		# Animacion de recoleccion (para ambos casos)
 		var tween = create_tween()
 		tween.tween_property(area, "scale", Vector2(1.5, 1.5), 0.1)
 		tween.tween_property(area, "modulate:a", 0.0, 0.15)
@@ -925,16 +883,21 @@ func _on_table_ingredient_clicked(_viewport: Node, event: InputEvent, _shape_idx
 		# Remover de la lista
 		active_ingredients.erase(area)
 
-		# Actualizar contador
+		# Actualizar contador (solo cuenta ingredientes correctos)
 		update_ingredients_counter()
 
-		# Habilitar boton de preparar si hay ingredientes seleccionados
-		if GlobalManager.collected_ingredients.size() > 0:
-			enable_prepare_button()
+		# Verificar si ya no quedan ingredientes y no se recolectaron todos los necesarios
+		if active_ingredients.size() == 0 and GlobalManager.collected_ingredients.size() < total_ingredients_needed:
+			# Timeout: se acabaron los ingredientes sin completar la receta
+			print("⚠️ NIVEL: No quedan ingredientes, emitiendo timeout")
+			minigame_active = false
+			clear_minigame_ui()
+			emit_signal("ingredients_timeout")
+			return
 
-		# Tutorial: mostrar tooltip para preparar cuando tenga suficientes ingredientes
+		# Preparar automáticamente cuando tiene todos los ingredientes CORRECTOS necesarios
 		if GlobalManager.collected_ingredients.size() >= total_ingredients_needed:
-			show_prepare_tutorial()
+			auto_prepare_dish()
 
 func clear_ingredients() -> void:
 	print("🧹 clear_ingredients llamado - tweens activos: ", active_tweens.size())
@@ -955,13 +918,26 @@ func clear_ingredients() -> void:
 		for child in ingredients_container.get_children():
 			child.queue_free()
 
+func auto_prepare_dish() -> void:
+	if not minigame_active:
+		return
+
+	print("🍳 Auto-preparando platillo con ingredientes recolectados")
+	AudioManager.play_click_sfx()
+	GlobalManager.recipe_started = true
+	minigame_active = false
+
+	# Limpiar ingredientes y UI
+	clear_ingredients()
+	clear_minigame_ui()
+
+	# Hacer que Newton cocine
+	GameController.make_newton_cook()
+
 func stop_ingredients_minigame() -> void:
 	minigame_active = false
 	clear_ingredients()
 	clear_minigame_ui()
-	if prepare_button and is_instance_valid(prepare_button):
-		prepare_button.queue_free()
-		prepare_button = null
 
 # ============ EFECTOS VISUALES ============
 
@@ -997,6 +973,113 @@ func create_collect_effect(pos: Vector2) -> void:
 		p_tween.tween_property(particle, "modulate:a", 0.0, 0.3)
 		p_tween.set_parallel(false)
 		p_tween.tween_callback(particle.queue_free)
+
+func create_wrong_ingredient_effect(pos: Vector2) -> void:
+	# Flash rojo para ingrediente incorrecto
+	var flash = ColorRect.new()
+	flash.color = Color(1, 0.2, 0.2, 0.7)  # Rojo
+	flash.size = Vector2(100, 100)
+	flash.position = pos - Vector2(50, 50)
+	flash.z_index = 100
+	add_child(flash)
+
+	var flash_tween = create_tween()
+	flash_tween.tween_property(flash, "modulate:a", 0.0, 0.2)
+	flash_tween.tween_callback(flash.queue_free)
+
+	# Partículas rojas
+	for i in range(6):
+		var particle = ColorRect.new()
+		particle.color = Color(1, 0.3, 0.2)  # Rojo
+		particle.size = Vector2(10, 10)
+		particle.position = pos - Vector2(5, 5)
+		particle.z_index = 99
+		add_child(particle)
+
+		var angle = randf() * TAU
+		var distance = randf_range(40, 70)
+		var target_pos = pos + Vector2(cos(angle), sin(angle)) * distance
+
+		var p_tween = create_tween()
+		p_tween.set_parallel(true)
+		p_tween.tween_property(particle, "position", target_pos, 0.4).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+		p_tween.tween_property(particle, "modulate:a", 0.0, 0.4)
+		p_tween.set_parallel(false)
+		p_tween.tween_callback(particle.queue_free)
+
+	# Símbolo X grande
+	var x_label = Label.new()
+	x_label.text = "✗"
+	x_label.add_theme_font_size_override("font_size", 48)
+	x_label.add_theme_color_override("font_color", Color(1, 0.2, 0.2))
+	x_label.position = pos - Vector2(24, 30)
+	x_label.z_index = 101
+	add_child(x_label)
+
+	var x_tween = create_tween()
+	x_tween.tween_property(x_label, "position:y", x_label.position.y - 40, 0.5).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	x_tween.parallel().tween_property(x_label, "modulate:a", 0.0, 0.5).set_delay(0.2)
+	x_tween.tween_callback(x_label.queue_free)
+
+func show_life_lost_animation(pos: Vector2) -> void:
+	# Crear corazón roto que flota hacia arriba
+	var heart = Label.new()
+	heart.text = "💔"
+	heart.add_theme_font_size_override("font_size", 64)
+	heart.position = pos + Vector2(-32, -80)  # Arriba del cliente
+	heart.z_index = 150
+	add_child(heart)
+
+	# Animación: flota hacia arriba y desaparece
+	var heart_tween = create_tween()
+	heart_tween.set_parallel(true)
+	heart_tween.tween_property(heart, "position:y", heart.position.y - 120, 1.2).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	heart_tween.tween_property(heart, "modulate:a", 0.0, 1.2).set_delay(0.3)
+	heart_tween.tween_property(heart, "scale", Vector2(1.5, 1.5), 0.3).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	heart_tween.set_parallel(false)
+	heart_tween.tween_callback(heart.queue_free)
+
+	# Partículas de corazón roto
+	for i in range(8):
+		var shard = Label.new()
+		shard.text = "💔"
+		shard.add_theme_font_size_override("font_size", 24)
+		shard.add_theme_color_override("font_color", Color(1, 0.3, 0.3, 0.8))
+		shard.position = pos + Vector2(-12, -60)
+		shard.z_index = 149
+		add_child(shard)
+
+		var angle = (TAU / 8) * i + randf_range(-0.3, 0.3)
+		var distance = randf_range(40, 80)
+		var target_pos = shard.position + Vector2(cos(angle), sin(angle)) * distance
+
+		var shard_tween = create_tween()
+		shard_tween.set_parallel(true)
+		shard_tween.tween_property(shard, "position", target_pos, 0.8).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+		shard_tween.tween_property(shard, "rotation", randf_range(-PI, PI), 0.8)
+		shard_tween.tween_property(shard, "modulate:a", 0.0, 0.8).set_delay(0.2)
+		shard_tween.tween_property(shard, "scale", Vector2(0.5, 0.5), 0.8)
+		shard_tween.set_parallel(false)
+		shard_tween.tween_callback(shard.queue_free)
+
+	# Texto "-1 VIDA" flotante
+	var text = Label.new()
+	text.text = "-1 VIDA"
+	text.add_theme_font_size_override("font_size", 28)
+	text.add_theme_color_override("font_color", Color(1, 0.2, 0.2))
+	text.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.8))
+	text.add_theme_constant_override("shadow_offset_x", 3)
+	text.add_theme_constant_override("shadow_offset_y", 3)
+	text.position = pos + Vector2(-60, -40)
+	text.z_index = 151
+	add_child(text)
+
+	var text_tween = create_tween()
+	text_tween.set_parallel(true)
+	text_tween.tween_property(text, "position:y", text.position.y - 80, 1.0).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	text_tween.tween_property(text, "modulate:a", 0.0, 1.0).set_delay(0.4)
+	text_tween.set_parallel(false)
+	text_tween.tween_callback(text.queue_free)
 
 func create_celebration_effect(pos: Vector2) -> void:
 	# Estrellas y particulas de celebracion (estilo Club Penguin)
